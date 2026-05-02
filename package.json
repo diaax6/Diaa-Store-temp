@@ -1,0 +1,16 @@
+{
+  "name": "diaastore-tempmail",
+  "version": "1.0.0",
+  "description": "Temp Mail service powered by MailCow aliases",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "imapflow": "^1.0.165",
+    "mailparser": "^3.7.1",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiaaStore TempMail — Instant Disposable Email</title>
+    <meta name="description" content="Free temporary email addresses powered by DiaaStore. Protect your privacy with instant disposable emails.">
+    <meta name="theme-color" content="#06080f">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📨</text></svg>">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="bg-fx">
+        <div class="mesh m1"></div>
+        <div class="mesh m2"></div>
+        <div class="mesh m3"></div>
+        <div class="grid"></div>
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+
+    <div class="app">
+        <header class="hdr">
+            <div class="hdr-brand">
+                <div class="hdr-icon">📨</div>
+                <span class="hdr-name">DiaaStore TempMail</span>
+            </div>
+            <p class="hdr-tag">Instant disposable email — <span>No signup. No tracking. Free forever.</span></p>
+        </header>
+
+        <div class="card input-section" id="inputSection">
+            <div class="card-label"><i>✉️</i> YOUR TEMPORARY EMAIL</div>
+            <div class="input-row">
+                <div class="input-wrap">
+                    <input type="text" class="email-in" id="emailInput" placeholder="Enter alias or generate one..." autocomplete="off" spellcheck="false">
+                    <span class="domain-tag" id="domainTag">@diaastore.cloud</span>
+                </div>
+                <button class="btn btn-go" id="checkBtn" onclick="handleCheck()">
+                    <span class="btn-shine"></span>
+                    <span>🔍</span> Check Inbox
+                </button>
+            </div>
+            <div class="acts">
+                <button class="btn btn-gen" onclick="generateRandomAlias()">🎲 Random Email</button>
+                <button class="btn btn-cp" id="copyBtn" onclick="copyEmail()" style="display:none">
+                    <span id="cpIco">📋</span> <span id="cpTxt">Copy Address</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="inboxArea" style="display:none">
+            <div class="stat-bar" id="statBar">
+                <div class="stat-l">
+                    <div class="stat-dot"></div>
+                    <span class="stat-txt">Watching <b id="statAlias">—</b> · <span id="statCount">0</span> emails</span>
+                </div>
+                <div class="stat-r">
+                    <span class="timer" id="timer">5s</span>
+                    <label class="toggle-lbl">
+                        <input type="checkbox" id="arToggle" checked onchange="toggleAR()">
+                        <span class="toggle-tr"></span>
+                        Auto-refresh
+                    </label>
+                </div>
+            </div>
+            <div class="card" id="inboxCard"></div>
+        </div>
+
+        <div class="card" id="welcomeCard">
+            <div class="welcome">
+                <span class="w-ico">📬</span>
+                <h2>Ready to Check Your Inbox</h2>
+                <p>Enter an alias email or generate a random one, then hit <strong>Check Inbox</strong> to see incoming messages in real-time.</p>
+                <div class="steps">
+                    <div class="step"><div class="step-n">1</div><span class="step-t">Enter or generate alias</span></div>
+                    <div class="step"><div class="step-n">2</div><span class="step-t">Click Check Inbox</span></div>
+                    <div class="step"><div class="step-n">3</div><span class="step-t">View emails instantly</span></div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="ftr">
+            <p>Powered by <a href="#">DiaaStore</a> · Secure & Private</p>
+        </footer>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

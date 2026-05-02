@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  tempmail:
+    build: .
+    container_name: diaastore-tempmail
+    restart: always
+    network_mode: host
+    environment:
+      - IMAP_HOST=127.0.0.1
+      - IMAP_PORT=993
+      - IMAP_USER=inbox@diaastore.cloud
+      - IMAP_PASS=TempMail2026
+      - MAIL_DOMAIN=diaastore.cloud
+      - PORT=3000
