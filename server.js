@@ -168,6 +168,36 @@ function buildEmail(uid, parsed) {
     };
 }
 
+// ─── Auto-cleanup: delete emails older than 48 hours ────────────────────────
+async function cleanupOldEmails() {
+    let client;
+    try {
+        client = new ImapFlow(imapConfig);
+        await client.connect();
+        const lock = await client.getMailboxLock('INBOX');
+        try {
+            const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+            const oldUids = await client.search({ before: cutoff }, { uid: true });
+            if (oldUids.length > 0) {
+                await client.messageDelete(oldUids, { uid: true });
+                console.log(`🗑️  Deleted ${oldUids.length} emails older than 48h`);
+            }
+        } finally {
+            lock.release();
+        }
+    } catch (err) {
+        console.error('Cleanup error:', err.message);
+    } finally {
+        if (client) { try { await client.logout(); } catch (_) {} }
+    }
+}
+
+// Run cleanup every 30 minutes
+if (!process.env.VERCEL) {
+    setInterval(cleanupOldEmails, 30 * 60 * 1000);
+    cleanupOldEmails(); // Run on startup
+}
+
 // ─── SPA fallback ───────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

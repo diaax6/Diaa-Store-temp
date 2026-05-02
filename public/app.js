@@ -11,9 +11,29 @@ const DOMAIN = domainTag.textContent.replace('@','').trim();
 
 document.addEventListener('DOMContentLoaded', () => {
     emailInput.addEventListener('keydown', e => { if(e.key==='Enter') handleCheck(); });
-    const h = location.hash.slice(1);
-    if(h) { emailInput.value = h.replace(`@${DOMAIN}`,''); handleCheck(); }
-    emailInput.focus();
+    
+    // Detect alias from URL: /alias, /alias@domain, ?email=alias, or #alias
+    let detected = '';
+    const urlPath = location.pathname.slice(1); // remove leading /
+    const urlParams = new URLSearchParams(location.search);
+    const hashVal = location.hash.slice(1);
+    
+    if (urlPath && !urlPath.includes('.') && urlPath !== 'api') {
+        detected = urlPath;
+    } else if (urlParams.get('email')) {
+        detected = urlParams.get('email');
+    } else if (hashVal) {
+        detected = hashVal;
+    }
+    
+    if (detected) {
+        detected = decodeURIComponent(detected).toLowerCase().trim();
+        detected = detected.replace(`@${DOMAIN}`, '');
+        emailInput.value = detected;
+        handleCheck();
+    } else {
+        emailInput.focus();
+    }
 });
 
 async function handleCheck() {
