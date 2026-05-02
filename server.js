@@ -174,8 +174,13 @@ app.get('*', (req, res) => {
 });
 
 // ─── Start ──────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-    console.log(`\n  🚀 DiaaStore TempMail running at http://localhost:${PORT}`);
-    console.log(`  📧 IMAP: ${imapConfig.host}:${imapConfig.port}`);
-    console.log(`  👤 User: ${imapConfig.auth.user}\n`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`\n  🚀 DiaaStore TempMail running at http://localhost:${PORT}`);
+        console.log(`  📧 IMAP: ${imapConfig.host}:${imapConfig.port}`);
+        console.log(`  👤 User: ${imapConfig.auth.user}\n`);
+    });
+}
+
+module.exports = app;
+
