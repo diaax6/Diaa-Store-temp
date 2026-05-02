@@ -154,6 +154,12 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 
 /* ── Footer ──────────────────────────────────── */
 .ftr { text-align:center; padding:40px 0 0; border-top:1px solid var(--border); margin-top:48px; }
+.ftr-social { display:flex; justify-content:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.social-btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px; font-size:13px; font-weight:600; text-decoration:none; transition:all var(--t-base); border:1.5px solid var(--border); }
+.social-btn.wa { color:#25d366; background:rgba(37,211,102,.06); border-color:rgba(37,211,102,.2); }
+.social-btn.wa:hover { background:rgba(37,211,102,.12); border-color:rgba(37,211,102,.4); transform:translateY(-2px); box-shadow:0 4px 20px rgba(37,211,102,.15); }
+.social-btn.fb { color:#1877f2; background:rgba(24,119,242,.06); border-color:rgba(24,119,242,.2); }
+.social-btn.fb:hover { background:rgba(24,119,242,.12); border-color:rgba(24,119,242,.4); transform:translateY(-2px); box-shadow:0 4px 20px rgba(24,119,242,.15); }
 .ftr p { font-size:11px; color:var(--text-3); letter-spacing:.5px; }
 .ftr a { color:var(--accent-3); text-decoration:none; font-weight:600; }
 .ftr a:hover { color:var(--accent-2); }
