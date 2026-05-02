@@ -1,7 +1,7 @@
 /* DiaaStore TempMail — Client */
 
 let currentAlias = '', currentEmails = [], selectedUid = null;
-let arEnabled = true, cdTimer = null, countdown = 5, isLoading = false;
+let arEnabled = true, cdTimer = null, countdown = 15, isLoading = false;
 
 const $ = id => document.getElementById(id);
 const emailInput = $('emailInput'), inboxArea = $('inboxArea'), inboxCard = $('inboxCard');
@@ -154,10 +154,21 @@ async function copyEmail() {
     } catch(e) { toast('Copy failed','err'); }
 }
 
-function startAR() { stopAR(); if(!arEnabled||!currentAlias) return; countdown=5; timerEl.textContent='5s';
-    cdTimer=setInterval(()=>{ countdown--; timerEl.textContent=`${countdown}s`; if(countdown<=0){countdown=5;fetchEmails();} },1000); }
+function startAR() { stopAR(); if(!arEnabled||!currentAlias) return; countdown=15; timerEl.textContent='15s';
+    cdTimer=setInterval(()=>{ countdown--; timerEl.textContent=`${countdown}s`; if(countdown<=0){countdown=15;fetchEmails();} },1000); }
 function stopAR() { if(cdTimer){clearInterval(cdTimer);cdTimer=null;} timerEl.textContent='—'; }
 function toggleAR() { arEnabled=$('arToggle').checked; arEnabled?startAR():stopAR(); }
+
+async function manualRefresh() {
+    if(!currentAlias) { toast('Enter an alias first','err'); return; }
+    const btn = $('refreshBtn');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    await fetchEmails();
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+    if(arEnabled) startAR(); // Reset countdown
+}
 
 function toast(msg,type='inf') {
     const c=$('toasts'), t=document.createElement('div');

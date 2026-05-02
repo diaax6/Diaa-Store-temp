@@ -153,7 +153,31 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 @keyframes tOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(30px)} }
 
 /* ── Footer ──────────────────────────────────── */
+/* ── Refresh Button ──────────────────────────── */
+.btn-refresh { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(124,58,237,.08); border:1.5px solid rgba(124,58,237,.25); border-radius:8px; color:var(--accent-3); font-size:11px; font-weight:600; cursor:pointer; transition:all var(--t-base); font-family:'Inter',sans-serif; }
+.btn-refresh:hover { background:rgba(124,58,237,.15); border-color:rgba(124,58,237,.5); transform:translateY(-1px); }
+.btn-refresh:active { transform:translateY(0); }
+.btn-refresh.spinning svg { animation:sp .6s linear infinite; }
+
+/* ── Footer ──────────────────────────────────── */
 .ftr { text-align:center; padding:40px 0 0; border-top:1px solid var(--border); margin-top:48px; }
+
+/* Services section */
+.ftr-services { margin-bottom:28px; }
+.ftr-services-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--text-3); margin-bottom:14px; }
+.services-grid { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.service-card { display:flex; align-items:center; gap:12px; padding:14px 20px; background:var(--bg-3); border:1px solid var(--border); border-radius:var(--r-md); text-decoration:none; transition:all var(--t-base); min-width:200px; position:relative; overflow:hidden; }
+.service-card::before { content:''; position:absolute; inset:0; background:var(--gradient-card); opacity:0; transition:opacity var(--t-base); }
+.service-card:hover { border-color:var(--border-h); transform:translateY(-3px); box-shadow:var(--glow); }
+.service-card:hover::before { opacity:1; }
+.svc-icon { font-size:22px; flex-shrink:0; position:relative; z-index:1; }
+.svc-info { flex:1; text-align:left; position:relative; z-index:1; }
+.svc-name { display:block; font-size:13px; font-weight:700; color:var(--text-0); margin-bottom:2px; }
+.svc-url { display:block; font-size:10px; color:var(--text-3); font-family:'JetBrains Mono',monospace; }
+.svc-arrow { color:var(--text-3); transition:all var(--t-base); position:relative; z-index:1; }
+.service-card:hover .svc-arrow { color:var(--accent-3); transform:translate(2px,-2px); }
+
+/* Social buttons */
 .ftr-social { display:flex; justify-content:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
 .social-btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px; font-size:13px; font-weight:600; text-decoration:none; transition:all var(--t-base); border:1.5px solid var(--border); }
 .social-btn.wa { color:#25d366; background:rgba(37,211,102,.06); border-color:rgba(37,211,102,.2); }
@@ -163,6 +187,8 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 .ftr p { font-size:11px; color:var(--text-3); letter-spacing:.5px; }
 .ftr a { color:var(--accent-3); text-decoration:none; font-weight:600; }
 .ftr a:hover { color:var(--accent-2); }
+
+@media(max-width:480px) { .services-grid { flex-direction:column; align-items:center; } .service-card { min-width:260px; } }
 
 /* ── Animations ──────────────────────────────── */
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
