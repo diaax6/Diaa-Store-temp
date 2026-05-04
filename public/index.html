@@ -33,7 +33,10 @@
             <div class="input-row">
                 <div class="input-wrap">
                     <input type="text" class="email-in" id="emailInput" placeholder="Enter alias or generate one..." autocomplete="off" spellcheck="false">
-                    <span class="domain-tag" id="domainTag">@diaastore.cloud</span>
+                    <select class="domain-select" id="domainSelect">
+                        <option value="diaastore.cloud">@diaastore.cloud</option>
+                        <option value="diaa.store">@diaa.store</option>
+                    </select>
                 </div>
                 <button class="btn btn-go" id="checkBtn" onclick="handleCheck()">
                     <span class="btn-shine"></span>

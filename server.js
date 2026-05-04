@@ -10,23 +10,51 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
-const MAIL_DOMAIN = process.env.MAIL_DOMAIN || 'diaastore.cloud';
+const IMAP_HOST = process.env.IMAP_HOST || '127.0.0.1';
+const IMAP_PORT = parseInt(process.env.IMAP_PORT) || 993;
 
-// IMAP config
-const imapConfig = {
-    host: process.env.IMAP_HOST,
-    port: parseInt(process.env.IMAP_PORT) || 993,
-    secure: true,
-    auth: {
+// ─── Multi-domain configuration ─────────────────────────────────────────────
+const domains = [];
+for (let i = 1; i <= 10; i++) {
+    const domain = process.env[`MAIL_DOMAIN_${i}`];
+    const user = process.env[`IMAP_USER_${i}`];
+    const pass = process.env[`IMAP_PASS_${i}`];
+    if (domain && user && pass) {
+        domains.push({ domain, user, pass });
+    }
+}
+// Fallback: support old single-domain config
+if (domains.length === 0 && process.env.MAIL_DOMAIN) {
+    domains.push({
+        domain: process.env.MAIL_DOMAIN,
         user: process.env.IMAP_USER,
         pass: process.env.IMAP_PASS,
-    },
-    tls: {
-        servername: 'mail.diaastore.cloud',
-        rejectUnauthorized: false,
-    },
-    logger: false,
-};
+    });
+}
+
+console.log(`📧 Configured domains: ${domains.map(d => d.domain).join(', ')}`);
+
+function getImapConfig(domainEntry) {
+    return {
+        host: IMAP_HOST,
+        port: IMAP_PORT,
+        secure: true,
+        auth: {
+            user: domainEntry.user,
+            pass: domainEntry.pass,
+        },
+        tls: {
+            servername: 'mail.diaastore.cloud',
+            rejectUnauthorized: false,
+        },
+        logger: false,
+    };
+}
+
+function findDomainEntry(alias) {
+    const domainPart = alias.split('@')[1];
+    return domains.find(d => d.domain === domainPart) || null;
+}
 
 // ─── Rate limiting ──────────────────────────────────────────────────────────
 const rateMap = new Map();
@@ -53,8 +81,19 @@ function rateLimit(req, res, next) {
     next();
 }
 
+// ─── List available domains ─────────────────────────────────────────────────
+app.get('/api/domains', (req, res) => {
+    res.json({ domains: domains.map(d => d.domain) });
+});
+
 // ─── Generate random alias ─────────────────────────────────────────────────
 app.get('/api/generate', (req, res) => {
+    const requestedDomain = req.query.domain || domains[0]?.domain;
+    const domainEntry = domains.find(d => d.domain === requestedDomain) || domains[0];
+    if (!domainEntry) {
+        return res.status(500).json({ error: 'No domains configured' });
+    }
+
     const words = [
         'alpha', 'beta', 'gamma', 'delta', 'echo', 'foxtrot', 'nova', 'pixel',
         'cyber', 'neon', 'flux', 'orbit', 'prism', 'vortex', 'zenith', 'blaze',
@@ -64,21 +103,25 @@ app.get('/api/generate', (req, res) => {
     ];
     const word = words[Math.floor(Math.random() * words.length)];
     const num = crypto.randomInt(1000, 9999);
-    const alias = `${word}${num}@${MAIL_DOMAIN}`;
+    const alias = `${word}${num}@${domainEntry.domain}`;
     res.json({ alias });
 });
 
 // ─── Fetch emails for alias via IMAP ────────────────────────────────────────
 app.get('/api/emails/:alias', rateLimit, async (req, res) => {
     const alias = req.params.alias.toLowerCase().trim();
+    const domainPart = alias.split('@')[1];
 
-    if (!alias.includes('@') || !alias.endsWith(`@${MAIL_DOMAIN}`)) {
-        return res.status(400).json({ error: `Invalid alias. Must end with @${MAIL_DOMAIN}` });
+    // Validate domain
+    const domainEntry = findDomainEntry(alias);
+    if (!alias.includes('@') || !domainEntry) {
+        const validDomains = domains.map(d => `@${d.domain}`).join(' or ');
+        return res.status(400).json({ error: `Invalid alias. Must end with ${validDomains}` });
     }
 
     let client;
     try {
-        client = new ImapFlow(imapConfig);
+        client = new ImapFlow(getImapConfig(domainEntry));
         await client.connect();
 
         const lock = await client.getMailboxLock('INBOX');
@@ -168,27 +211,29 @@ function buildEmail(uid, parsed) {
     };
 }
 
-// ─── Auto-cleanup: delete emails older than 48 hours ────────────────────────
+// ─── Auto-cleanup: delete emails older than 48 hours (all domains) ──────────
 async function cleanupOldEmails() {
-    let client;
-    try {
-        client = new ImapFlow(imapConfig);
-        await client.connect();
-        const lock = await client.getMailboxLock('INBOX');
+    for (const domainEntry of domains) {
+        let client;
         try {
-            const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
-            const oldUids = await client.search({ before: cutoff }, { uid: true });
-            if (oldUids.length > 0) {
-                await client.messageDelete(oldUids, { uid: true });
-                console.log(`🗑️  Deleted ${oldUids.length} emails older than 48h`);
+            client = new ImapFlow(getImapConfig(domainEntry));
+            await client.connect();
+            const lock = await client.getMailboxLock('INBOX');
+            try {
+                const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+                const oldUids = await client.search({ before: cutoff }, { uid: true });
+                if (oldUids.length > 0) {
+                    await client.messageDelete(oldUids, { uid: true });
+                    console.log(`🗑️  [${domainEntry.domain}] Deleted ${oldUids.length} emails older than 48h`);
+                }
+            } finally {
+                lock.release();
             }
+        } catch (err) {
+            console.error(`Cleanup error [${domainEntry.domain}]:`, err.message);
         } finally {
-            lock.release();
+            if (client) { try { await client.logout(); } catch (_) {} }
         }
-    } catch (err) {
-        console.error('Cleanup error:', err.message);
-    } finally {
-        if (client) { try { await client.logout(); } catch (_) {} }
     }
 }
 
@@ -207,10 +252,9 @@ app.get('*', (req, res) => {
 if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`\n  🚀 DiaaStore TempMail running at http://localhost:${PORT}`);
-        console.log(`  📧 IMAP: ${imapConfig.host}:${imapConfig.port}`);
-        console.log(`  👤 User: ${imapConfig.auth.user}\n`);
+        console.log(`  📧 IMAP: ${IMAP_HOST}:${IMAP_PORT}`);
+        console.log(`  🌐 Domains: ${domains.map(d => d.domain).join(', ')}\n`);
     });
 }
 
 module.exports = app;
-

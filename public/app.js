@@ -1,4 +1,4 @@
-/* DiaaStore TempMail — Client */
+/* DiaaStore TempMail — Client (Multi-Domain) */
 
 let currentAlias = '', currentEmails = [], selectedUid = null;
 let arEnabled = true, cdTimer = null, countdown = 15, isLoading = false;
@@ -6,10 +6,34 @@ let arEnabled = true, cdTimer = null, countdown = 15, isLoading = false;
 const $ = id => document.getElementById(id);
 const emailInput = $('emailInput'), inboxArea = $('inboxArea'), inboxCard = $('inboxCard');
 const welcomeCard = $('welcomeCard'), statAlias = $('statAlias'), statCount = $('statCount');
-const timerEl = $('timer'), copyBtn = $('copyBtn'), domainTag = $('domainTag');
-const DOMAIN = domainTag.textContent.replace('@','').trim();
+const timerEl = $('timer'), copyBtn = $('copyBtn'), domainSelect = $('domainSelect');
 
-document.addEventListener('DOMContentLoaded', () => {
+function getDomain() {
+    return domainSelect.value;
+}
+
+// Fetch available domains from server and populate selector
+async function loadDomains() {
+    try {
+        const r = await fetch('/api/domains');
+        const d = await r.json();
+        if (d.domains && d.domains.length > 0) {
+            domainSelect.innerHTML = '';
+            d.domains.forEach(domain => {
+                const opt = document.createElement('option');
+                opt.value = domain;
+                opt.textContent = `@${domain}`;
+                domainSelect.appendChild(opt);
+            });
+        }
+    } catch(e) {
+        console.log('Could not load domains, using defaults');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDomains();
+    
     emailInput.addEventListener('keydown', e => { if(e.key==='Enter') handleCheck(); });
     
     // Detect alias from URL: /alias, /alias@domain, ?email=alias, or #alias
@@ -28,7 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (detected) {
         detected = decodeURIComponent(detected).toLowerCase().trim();
-        detected = detected.replace(`@${DOMAIN}`, '');
+        // Try to detect domain from URL input
+        const allDomains = Array.from(domainSelect.options).map(o => o.value);
+        for (const d of allDomains) {
+            if (detected.endsWith(`@${d}`)) {
+                domainSelect.value = d;
+                detected = detected.replace(`@${d}`, '');
+                break;
+            }
+        }
+        // If still has @, strip the domain part
+        if (detected.includes('@')) {
+            detected = detected.split('@')[0];
+        }
         emailInput.value = detected;
         handleCheck();
     } else {
@@ -39,11 +75,29 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleCheck() {
     let a = emailInput.value.trim().toLowerCase();
     if(!a) { toast('Enter an alias name or generate one','err'); emailInput.focus(); return; }
-    if(!a.includes('@')) a = `${a}@${DOMAIN}`;
-    if(!a.endsWith(`@${DOMAIN}`)) { toast(`Must end with @${DOMAIN}`,'err'); return; }
+    
+    const domain = getDomain();
+    
+    // If user pasted a full email, extract parts
+    if(a.includes('@')) {
+        const parts = a.split('@');
+        const inputDomain = parts[1];
+        // Try to match with available domains
+        const allDomains = Array.from(domainSelect.options).map(o => o.value);
+        if (allDomains.includes(inputDomain)) {
+            domainSelect.value = inputDomain;
+        } else {
+            toast(`Domain @${inputDomain} is not available. Use @${domain}`,'err');
+            return;
+        }
+        a = `${parts[0]}@${inputDomain}`;
+    } else {
+        a = `${a}@${domain}`;
+    }
+    
     currentAlias = a;
-    emailInput.value = a.replace(`@${DOMAIN}`,'');
-    location.hash = emailInput.value;
+    emailInput.value = a.split('@')[0];
+    location.hash = currentAlias;
     welcomeCard.style.display = 'none';
     inboxArea.style.display = 'block';
     copyBtn.style.display = 'inline-flex';
@@ -135,16 +189,22 @@ function goBack() { selectedUid=null; renderList(); }
 
 async function generateRandomAlias() {
     try {
-        const r = await fetch('/api/generate'), d = await r.json();
-        emailInput.value = d.alias.replace(`@${DOMAIN}`,'');
+        const domain = getDomain();
+        const r = await fetch(`/api/generate?domain=${encodeURIComponent(domain)}`), d = await r.json();
+        const aliasParts = d.alias.split('@');
+        emailInput.value = aliasParts[0];
+        // Set the domain selector to match
+        if (aliasParts[1]) {
+            domainSelect.value = aliasParts[1];
+        }
         toast(`Generated: ${d.alias}`,'ok');
         handleCheck();
     } catch(e) { toast('Failed to generate','err'); }
 }
 
 async function copyEmail() {
-    const a = currentAlias || `${emailInput.value.trim()}@${DOMAIN}`;
-    if(!a||a===`@${DOMAIN}`) { toast('No email to copy','err'); return; }
+    const a = currentAlias || `${emailInput.value.trim()}@${getDomain()}`;
+    if(!a||a===`@${getDomain()}`) { toast('No email to copy','err'); return; }
     try {
         await navigator.clipboard.writeText(a);
         copyBtn.classList.add('ok');
