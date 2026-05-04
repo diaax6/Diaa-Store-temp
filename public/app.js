@@ -97,7 +97,7 @@ async function handleCheck() {
     
     currentAlias = a;
     emailInput.value = a.split('@')[0];
-    location.hash = currentAlias;
+    history.replaceState(null, '', '/' + encodeURIComponent(currentAlias));
     welcomeCard.style.display = 'none';
     inboxArea.style.display = 'block';
     copyBtn.style.display = 'inline-flex';
