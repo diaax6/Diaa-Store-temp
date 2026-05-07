@@ -18,10 +18,12 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'tempmail-secret-key-2026';
 
 // ─── Supabase ───────────────────────────────────────────────────────────────
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-);
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    console.error('⚠️  Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env vars!');
+}
+const supabase = process.env.SUPABASE_URL
+    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+    : null;
 
 // ─── Multi-domain IMAP ──────────────────────────────────────────────────────
 const domains = [];
