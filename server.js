@@ -97,9 +97,51 @@ app.post('/api/admin/login', async (req, res) => {
     if (req.body.password !== password) return res.status(401).json({ error: 'Invalid password' });
     res.json({ token: generateToken() });
 });
+// Helper: get all domains (env + Supabase)
+async function getAllDomains() {
+    const envDomains = domains.map(d => d.domain);
+    if (!supabase) return envDomains;
+    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+    const custom = data ? JSON.parse(data.value) : [];
+    const all = [...new Set([...envDomains, ...custom])];
+    return all;
+}
 
-app.get('/api/domains', (req, res) => {
-    res.json({ domains: domains.map(d => d.domain) });
+app.get('/api/domains', async (req, res) => {
+    res.json({ domains: await getAllDomains() });
+});
+
+app.get('/api/admin/domains', adminAuth, async (req, res) => {
+    const envDomains = domains.map(d => d.domain);
+    let customDomains = [];
+    if (supabase) {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+        customDomains = data ? JSON.parse(data.value) : [];
+    }
+    res.json({ envDomains, customDomains, serverIP: IMAP_HOST });
+});
+
+app.post('/api/admin/domains', adminAuth, async (req, res) => {
+    const { domain } = req.body;
+    if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return res.status(400).json({ error: 'Invalid domain' });
+    if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+    const list = data ? JSON.parse(data.value) : [];
+    if (list.includes(domain.toLowerCase()) || domains.find(d => d.domain === domain.toLowerCase())) {
+        return res.status(409).json({ error: 'Domain already exists' });
+    }
+    list.push(domain.toLowerCase());
+    await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(list), updated_at: new Date().toISOString() });
+    res.json({ success: true, domains: list });
+});
+
+app.delete('/api/admin/domains/:domain', adminAuth, async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+    const list = data ? JSON.parse(data.value) : [];
+    const filtered = list.filter(d => d !== req.params.domain);
+    await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(filtered), updated_at: new Date().toISOString() });
+    res.json({ success: true });
 });
 
 app.get('/api/admin/aliases', adminAuth, async (req, res) => {
@@ -121,8 +163,9 @@ app.get('/api/admin/aliases', adminAuth, async (req, res) => {
 });
 
 app.post('/api/admin/generate', adminAuth, async (req, res) => {
-    const domain = req.body.domain || domains[0]?.domain;
-    if (!domains.find(d => d.domain === domain)) return res.status(400).json({ error: 'Invalid domain' });
+    const allDomains = await getAllDomains();
+    const domain = req.body.domain || allDomains[0];
+    if (!allDomains.includes(domain)) return res.status(400).json({ error: 'Invalid domain' });
 
     let localPart;
     if (req.body.customName) {

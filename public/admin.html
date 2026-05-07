@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TempMail Admin — Dashboard</title>
+    <title>DiaaStore Temp Admin</title>
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#030014">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
@@ -11,21 +11,19 @@
 </head>
 <body>
     <script src="/space.js"></script>
-
     <div class="toasts" id="toasts"></div>
 
-    <!-- LOGIN SCREEN -->
+    <!-- LOGIN -->
     <div class="app" id="loginScreen">
         <div class="login-wrap">
             <div class="card login-card">
                 <div class="login-icon">🛡️</div>
-                <h1 class="login-title">Admin Login</h1>
-                <p class="login-sub">TempMail Control Panel</p>
+                <h1 class="login-title">DiaaStore Temp Admin</h1>
+                <p class="login-sub">Admin Control Panel</p>
                 <div class="login-form">
                     <input type="password" class="email-in" id="passInput" placeholder="Enter admin password..." autocomplete="current-password">
                     <button class="btn btn-go" id="loginBtn" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:12px">
-                        <span class="btn-shine"></span>
-                        🔐 Login
+                        <span class="btn-shine"></span>🔐 Login
                     </button>
                 </div>
             </div>
@@ -36,53 +34,51 @@
     <div class="app" id="dashboard" style="display:none">
         <header class="hdr">
             <div class="hdr-brand">
-                <div class="hdr-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">🛡️</div>
-                <span class="hdr-name">TempMail Admin</span>
+                <div class="hdr-icon" style="background:linear-gradient(135deg,#8b5cf6,#06b6d4)">🛡️</div>
+                <span class="hdr-name">DiaaStore Temp Admin</span>
             </div>
             <div class="hdr-actions">
-                <a href="/" class="btn btn-back" style="font-size:11px;padding:8px 14px">📨 Client View</a>
+                <a href="/" class="btn btn-back" style="font-size:11px;padding:8px 14px">📨 Client</a>
                 <button class="btn btn-back" onclick="logout()" style="font-size:11px;padding:8px 14px">🚪 Logout</button>
             </div>
         </header>
 
         <!-- Stats -->
-        <div class="stats-row" id="statsRow">
-            <div class="stat-card">
-                <div class="stat-card-val" id="totalAliases">0</div>
-                <div class="stat-card-lbl">Total Emails</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-val" id="activeAliases">0</div>
-                <div class="stat-card-lbl">Active</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-val" id="totalMessages">0</div>
-                <div class="stat-card-lbl">Messages</div>
-            </div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-card-val" id="totalAliases">0</div><div class="stat-card-lbl">Total Emails</div></div>
+            <div class="stat-card"><div class="stat-card-val" id="activeAliases">0</div><div class="stat-card-lbl">Active</div></div>
+            <div class="stat-card"><div class="stat-card-val" id="totalMessages">0</div><div class="stat-card-lbl">Messages</div></div>
+            <div class="stat-card"><div class="stat-card-val" id="totalDomains">0</div><div class="stat-card-lbl">Domains</div></div>
         </div>
 
         <!-- Generate -->
         <div class="card">
             <div class="card-label"><i>➕</i> GENERATE NEW EMAIL</div>
             <div class="gen-row">
-                <input type="text" class="email-in" id="customName" placeholder="Custom name (leave empty for random)" style="padding-right:16px;flex:1" autocomplete="off" spellcheck="false">
+                <input type="text" class="email-in" id="customName" placeholder="Custom name (empty = random)" style="padding-right:16px;flex:1" autocomplete="off" spellcheck="false">
                 <select class="domain-select" id="domainSelect"></select>
-                <button class="btn btn-go" id="genBtn" onclick="generateAlias()">
-                    <span class="btn-shine"></span>
-                    🎲 Generate
-                </button>
+                <button class="btn btn-go" id="genBtn" onclick="generateAlias()"><span class="btn-shine"></span>🎲 Generate</button>
+                <button class="btn btn-go" onclick="generateAll()" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" title="Random for ALL domains"><span class="btn-shine"></span>🌐 All</button>
             </div>
             <div class="gen-row" style="margin-top:8px">
                 <input type="text" class="email-in" id="noteInput" placeholder="Note (optional)..." style="padding-right:16px;flex:1">
             </div>
         </div>
 
-        <!-- Aliases List -->
+        <!-- Aliases -->
         <div class="card">
             <div class="card-label"><i>📧</i> MANAGED EMAILS <span class="badge" id="aliasBadge">0</span></div>
-            <div id="aliasesList" class="aliases-list">
-                <div class="loading"><div class="spin"></div><span class="load-txt">Loading...</span></div>
+            <div id="aliasesList" class="aliases-list"><div class="loading"><div class="spin"></div><span class="load-txt">Loading...</span></div></div>
+        </div>
+
+        <!-- Domain Management -->
+        <div class="card">
+            <div class="card-label"><i>🌐</i> DOMAIN MANAGEMENT</div>
+            <div class="gen-row" style="margin-bottom:12px">
+                <input type="text" class="email-in" id="newDomain" placeholder="example.com" style="padding-right:16px;flex:1" autocomplete="off" spellcheck="false">
+                <button class="btn btn-go" onclick="addDomain()"><span class="btn-shine"></span>➕ Add</button>
             </div>
+            <div id="domainsList"></div>
         </div>
 
         <!-- Settings -->
@@ -92,11 +88,8 @@
                 <h3 class="settings-title">🔐 Change Admin Password</h3>
                 <div class="gen-row">
                     <input type="password" class="email-in" id="newPass" placeholder="New password..." style="padding-right:16px;flex:1">
-                    <input type="password" class="email-in" id="confirmPass" placeholder="Confirm password..." style="padding-right:16px;flex:1">
-                    <button class="btn btn-go" onclick="changePassword()" style="flex-shrink:0">
-                        <span class="btn-shine"></span>
-                        💾 Save
-                    </button>
+                    <input type="password" class="email-in" id="confirmPass" placeholder="Confirm..." style="padding-right:16px;flex:1">
+                    <button class="btn btn-go" onclick="changePassword()" style="flex-shrink:0"><span class="btn-shine"></span>💾 Save</button>
                 </div>
             </div>
             <hr class="settings-divider">
@@ -105,12 +98,20 @@
                 <div id="linksEditor"></div>
                 <div class="gen-row" style="margin-top:10px">
                     <button class="btn btn-back" onclick="addLink()" style="font-size:11px">➕ Add Link</button>
-                    <button class="btn btn-go" onclick="saveLinks()" style="flex-shrink:0">
-                        <span class="btn-shine"></span>
-                        💾 Save Links
-                    </button>
+                    <button class="btn btn-go" onclick="saveLinks()" style="flex-shrink:0"><span class="btn-shine"></span>💾 Save</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- DNS Instructions Modal -->
+    <div class="modal-overlay" id="dnsModal" style="display:none" onclick="if(event.target===this)closeDns()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>🌐 DNS Setup Instructions</h2>
+                <button class="abtn" onclick="closeDns()" style="font-size:18px">✕</button>
+            </div>
+            <div id="dnsContent"></div>
         </div>
     </div>
 

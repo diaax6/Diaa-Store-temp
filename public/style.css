@@ -306,6 +306,42 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 .link-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
 .link-in { font-size:12px !important; }
 
+/* ── Domain Items ───────────────────────────── */
+.domain-item { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid transparent; border-radius:var(--r-md); transition:all var(--t-base); gap:10px; }
+.domain-item:hover { background:var(--bg-hover); border-color:var(--border); }
+.domain-info { display:flex; align-items:center; gap:8px; }
+
+/* ── Stats 4 columns ────────────────────────── */
+.stats-row { grid-template-columns:repeat(4,1fr); }
+
+/* ── Modal ───────────────────────────────────── */
+.modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.7); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .2s ease; }
+.modal-card { background:var(--bg-1); border:1px solid var(--border); border-radius:var(--r-lg); max-width:700px; width:100%; max-height:85vh; overflow-y:auto; padding:32px; animation:fadeUp .3s ease; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.modal-header h2 { font-size:18px; font-weight:800; background:var(--gradient-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+/* ── DNS Table & Content ────────────────────── */
+.dns-section { margin-bottom:20px; }
+.dns-section h3 { font-size:15px; font-weight:700; margin-bottom:6px; color:var(--text-0); }
+.dns-section h4 { font-size:13px; font-weight:700; color:var(--text-1); margin-bottom:10px; }
+.dns-hint { font-weight:400; color:var(--text-3); font-size:11px; }
+.dns-desc { font-size:12px; color:var(--text-2); margin-bottom:12px; }
+.dns-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px; }
+.dns-table th { text-align:left; padding:8px 10px; color:var(--text-3); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:1px; border-bottom:1px solid var(--border); }
+.dns-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.03); }
+.dns-val { font-family:'JetBrains Mono',monospace; color:var(--accent); cursor:pointer; word-break:break-all; }
+.dns-val:hover { color:#c4b5fd; text-decoration:underline; }
+.dns-type { display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; font-family:'JetBrains Mono',monospace; }
+.dns-type.mx { background:rgba(251,146,60,.15); color:#fb923c; }
+.dns-type.a { background:rgba(34,197,94,.15); color:#22c55e; }
+.dns-type.txt { background:rgba(59,130,246,.15); color:#3b82f6; }
+.dns-type.cname { background:rgba(168,85,247,.15); color:#a855f7; }
+.dns-steps { padding-left:20px; font-size:12px; color:var(--text-2); line-height:2; }
+.dns-steps code { background:rgba(255,255,255,.06); padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a78bfa; }
+.dns-code { background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:8px; padding:12px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#2dd4bf; cursor:pointer; word-break:break-all; line-height:1.8; transition:all .2s; }
+.dns-code:hover { background:rgba(255,255,255,.06); border-color:var(--border-h); }
+.dns-tip { font-size:10px; color:var(--text-3); margin-top:4px; }
+
 @media(max-width:768px) {
     .stats-row { grid-template-columns:1fr; }
     .gen-row { flex-direction:column; }
