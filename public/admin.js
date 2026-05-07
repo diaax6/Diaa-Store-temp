@@ -186,12 +186,7 @@ function showStatusModal(domain, s) {
             </ol>
         </div>` : ''}
 
-        <div class="dns-section">
-            <h4>🔒 SSL Config <span class="dns-hint">(mailcow.conf)</span></h4>
-            <p>Add to <code>ADDITIONAL_SAN</code>:</p>
-            <div class="dns-code" onclick="copyText('autodiscover.${domain},mail.${domain}')">autodiscover.${domain},mail.${domain}</div>
-            <p style="margin-top:8px;font-size:11px;color:var(--text-3)">Then: <code>docker compose down && docker compose up -d</code></p>
-        </div>
+
 
         ${s.dns && s.imap && mc.domain === 'ok' ? `
         <div class="dns-section" style="background:rgba(34,197,94,.08);border-radius:12px;padding:16px;border:1px solid rgba(34,197,94,.3)">
@@ -256,15 +251,9 @@ function showDns(domain, mc) {
             <p class="dns-tip">💡 Click any value to copy it</p>
         </div>
 
-        <div class="dns-section">
-            <h4>2️⃣ MailCow Config <span class="dns-hint">(mailcow.conf)</span></h4>
-            <p>Add to <code>ADDITIONAL_SAN</code>:</p>
-            <div class="dns-code" onclick="copyText('autodiscover.${domain},mail.${domain}')">autodiscover.${domain},mail.${domain}</div>
-            <p style="margin-top:8px;font-size:11px;color:var(--text-3)">Then: <code>docker compose down && docker compose up -d</code></p>
-        </div>
 
         <div class="dns-section">
-            <h4>3️⃣ Vercel <span class="dns-hint">(if using temp.${domain})</span></h4>
+            <h4>2️⃣ Vercel <span class="dns-hint">(optional — if using temp.${domain})</span></h4>
             <ol class="dns-steps">
                 <li>Vercel → Project → Settings → Domains → Add <code>temp.${domain}</code></li>
                 <li>Add DNS: <span class="dns-type cname" style="font-size:10px">CNAME</span> <code>temp</code> → <code>cname.vercel-dns.com</code></li>
