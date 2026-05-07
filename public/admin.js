@@ -327,20 +327,21 @@ async function generateAlias() {
     btn.disabled = false;
 }
 
-async function generateAll() {
+async function generateRandom() {
     if (!allDomainsList.length) { toast('No domains', 'err'); return; }
+    const randomDomain = allDomainsList[Math.floor(Math.random() * allDomainsList.length)];
     const note = $('noteInput').value.trim() || null;
-    let count = 0;
-    for (const dom of allDomainsList) {
-        try {
-            const r = await fetch('/api/admin/generate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ domain: dom, note }) });
-            if (r.ok) count++;
-        } catch {}
-    }
-    toast(`Created ${count} email(s) across ${allDomainsList.length} domains`, 'ok');
-    $('noteInput').value = '';
-    loadAliases();
+    try {
+        const r = await fetch('/api/admin/generate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ domain: randomDomain, note }) });
+        if (r.ok) {
+            const d = await r.json();
+            toast(`🎯 Created: ${d.alias.email}`, 'ok');
+            $('noteInput').value = '';
+            await copyText(d.alias.email);
+            loadAliases();
+        } else { const d = await r.json(); toast(d.error || 'Failed', 'err'); }
+    } catch { toast('Failed', 'err'); }
 }
 
 async function deleteAlias(id, email) {

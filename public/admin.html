@@ -55,13 +55,11 @@
         <div class="card">
             <div class="card-label"><i>➕</i> GENERATE NEW EMAIL</div>
             <div class="gen-row">
-                <input type="text" class="email-in" id="customName" placeholder="Custom name (empty = random)" style="padding-right:16px;flex:1" autocomplete="off" spellcheck="false">
+                <input type="text" class="email-in" id="customName" placeholder="Custom name (empty = random)" style="flex:1" autocomplete="off" spellcheck="false">
+                <input type="text" class="email-in" id="noteInput" placeholder="Note..." style="width:120px;flex:none">
                 <select class="domain-select" id="domainSelect"></select>
                 <button class="btn btn-go" id="genBtn" onclick="generateAlias()"><span class="btn-shine"></span>🎲 Generate</button>
-                <button class="btn btn-go" onclick="generateAll()" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" title="Random for ALL domains"><span class="btn-shine"></span>🌐 All</button>
-            </div>
-            <div class="gen-row" style="margin-top:8px">
-                <input type="text" class="email-in" id="noteInput" placeholder="Note (optional)..." style="padding-right:16px;flex:1">
+                <button class="btn btn-go" onclick="generateRandom()" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" title="Random email on random domain"><span class="btn-shine"></span>🎯 Random</button>
             </div>
         </div>
 

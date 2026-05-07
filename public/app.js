@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlPath = decodeURIComponent(location.pathname.slice(1));
     const hashVal = decodeURIComponent(location.hash.slice(1));
 
-    if (urlPath && !urlPath.includes('.') && urlPath !== 'api' && urlPath !== 'admin') {
+    if (urlPath && urlPath.includes('@')) {
         detected = urlPath;
-    } else if (hashVal) {
+    } else if (hashVal && hashVal.includes('@')) {
         detected = hashVal;
     }
 
