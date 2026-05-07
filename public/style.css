@@ -309,7 +309,14 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 /* ── Domain Items ───────────────────────────── */
 .domain-item { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid transparent; border-radius:var(--r-md); transition:all var(--t-base); gap:10px; }
 .domain-item:hover { background:var(--bg-hover); border-color:var(--border); }
-.domain-info { display:flex; align-items:center; gap:8px; }
+.domain-info { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.domain-status { font-size:11px; padding:3px 8px; border-radius:6px; font-weight:600; }
+.domain-active { color:#22c55e; background:rgba(34,197,94,.1); }
+.domain-partial { color:#eab308; background:rgba(234,179,8,.1); }
+.domain-pending { color:#f97316; background:rgba(249,115,22,.1); }
+.domain-inactive { color:#ef4444; background:rgba(239,68,68,.1); }
+.domain-checking { color:#8b5cf6; background:rgba(139,92,246,.1); animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
 
 /* ── Stats 4 columns ────────────────────────── */
 .stats-row { grid-template-columns:repeat(4,1fr); }

@@ -5,6 +5,7 @@ const { simpleParser } = require('mailparser');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 const crypto = require('crypto');
+const dns = require('dns').promises;
 
 const app = express();
 app.use(express.json());
@@ -33,10 +34,10 @@ for (let i = 1; i <= 10; i++) {
     const domain = process.env[`MAIL_DOMAIN_${i}`];
     const user = process.env[`IMAP_USER_${i}`];
     const pass = process.env[`IMAP_PASS_${i}`];
-    if (domain && user && pass) domains.push({ domain, user, pass });
+    if (domain && user && pass) domains.push({ domain, user, pass, source: 'env' });
 }
 if (domains.length === 0 && process.env.MAIL_DOMAIN) {
-    domains.push({ domain: process.env.MAIL_DOMAIN, user: process.env.IMAP_USER, pass: process.env.IMAP_PASS });
+    domains.push({ domain: process.env.MAIL_DOMAIN, user: process.env.IMAP_USER, pass: process.env.IMAP_PASS, source: 'env' });
 }
 console.log(`📧 Domains: ${domains.map(d => d.domain).join(', ')}`);
 
@@ -49,8 +50,21 @@ function getImapConfig(entry) {
     };
 }
 
-function findDomainEntry(alias) {
-    return domains.find(d => d.domain === alias.split('@')[1]) || null;
+// Find domain entry from env OR Supabase-stored domains
+async function findDomainEntry(alias) {
+    const domainName = alias.split('@')[1];
+    // Check env domains first
+    const envEntry = domains.find(d => d.domain === domainName);
+    if (envEntry) return envEntry;
+    // Check Supabase custom domains
+    if (!supabase) return null;
+    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+    const list = data ? JSON.parse(data.value) : [];
+    const found = list.find(d => (typeof d === 'object' ? d.domain : d) === domainName);
+    if (found && typeof found === 'object' && found.imapUser) {
+        return { domain: found.domain, user: found.imapUser, pass: found.imapPass };
+    }
+    return null;
 }
 
 // ─── Admin Auth ─────────────────────────────────────────────────────────────
@@ -99,13 +113,23 @@ app.post('/api/admin/login', async (req, res) => {
     res.json({ token: generateToken() });
 });
 
-// Helper: get all domains (env + Supabase)
+// Helper: get all domain names (env + Supabase)
 async function getAllDomains() {
     const envDomains = domains.map(d => d.domain);
     if (!supabase) return envDomains;
     const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
-    const custom = data ? JSON.parse(data.value) : [];
-    return [...new Set([...envDomains, ...custom])];
+    const list = data ? JSON.parse(data.value) : [];
+    const customNames = list.map(d => typeof d === 'object' ? d.domain : d);
+    return [...new Set([...envDomains, ...customNames])];
+}
+
+// Helper: get custom domains objects from Supabase
+async function getCustomDomainsData() {
+    if (!supabase) return [];
+    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
+    const list = data ? JSON.parse(data.value) : [];
+    // Normalize: convert old string format to object format
+    return list.map(d => typeof d === 'object' ? d : { domain: d, imapUser: 'inbox@' + d, imapPass: 'TempMail2026!', mailcow: {} });
 }
 
 app.get('/api/domains', async (req, res) => {
@@ -113,12 +137,9 @@ app.get('/api/domains', async (req, res) => {
 });
 
 app.get('/api/admin/domains', adminAuth, async (req, res) => {
-    const envDomains = domains.map(d => d.domain);
-    let customDomains = [];
-    if (supabase) {
-        const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
-        customDomains = data ? JSON.parse(data.value) : [];
-    }
+    const envDomains = domains.map(d => ({ domain: d.domain, source: 'env', configured: true }));
+    const customData = await getCustomDomainsData();
+    const customDomains = customData.map(d => ({ domain: d.domain, source: 'custom', mailcow: d.mailcow || {}, configured: false }));
     res.json({ envDomains, customDomains, serverIP: IMAP_HOST });
 });
 
@@ -127,9 +148,11 @@ app.post('/api/admin/domains', adminAuth, async (req, res) => {
     const domRegex = /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/;
     if (!dom || !domRegex.test(dom)) return res.status(400).json({ error: 'Invalid domain' });
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
-    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
-    const list = data ? JSON.parse(data.value) : [];
-    if (list.includes(dom) || domains.find(d => d.domain === dom)) return res.status(409).json({ error: 'Domain already exists' });
+
+    const existing = await getCustomDomainsData();
+    if (existing.find(d => d.domain === dom) || domains.find(d => d.domain === dom)) {
+        return res.status(409).json({ error: 'Domain already exists' });
+    }
 
     // MailCow API automation
     const mc = { domain: 'skipped', mailbox: 'skipped', alias: 'skipped' };
@@ -137,26 +160,68 @@ app.post('/api/admin/domains', adminAuth, async (req, res) => {
     if (MAILCOW_API_KEY) {
         const mch = { 'Content-Type': 'application/json', 'X-API-Key': MAILCOW_API_KEY };
         try {
-            const r1 = await fetch(`${MAILCOW_URL}/api/v1/add/domain`, { method: 'POST', headers: mch, body: JSON.stringify({ domain: dom, description: 'TempMail ' + dom, aliases: 400, mailboxes: 10, defquota: 1024, maxquota: 2048, active: 1 }) });
+            const r1 = await fetch(MAILCOW_URL + '/api/v1/add/domain', { method: 'POST', headers: mch, body: JSON.stringify({ domain: dom, description: 'TempMail ' + dom, aliases: 400, mailboxes: 10, defquota: 1024, maxquota: 2048, active: 1 }) });
             mc.domain = r1.ok ? 'ok' : 'failed';
-            const r2 = await fetch(`${MAILCOW_URL}/api/v1/add/mailbox`, { method: 'POST', headers: mch, body: JSON.stringify({ local_part: 'inbox', domain: dom, name: 'Inbox', password: mcPass, password2: mcPass, quota: 1024, active: 1 }) });
+            const r2 = await fetch(MAILCOW_URL + '/api/v1/add/mailbox', { method: 'POST', headers: mch, body: JSON.stringify({ local_part: 'inbox', domain: dom, name: 'Inbox', password: mcPass, password2: mcPass, quota: 1024, active: 1 }) });
             mc.mailbox = r2.ok ? 'ok' : 'failed';
-            const r3 = await fetch(`${MAILCOW_URL}/api/v1/add/alias`, { method: 'POST', headers: mch, body: JSON.stringify({ address: '@' + dom, goto: 'inbox@' + dom, active: 1 }) });
+            const r3 = await fetch(MAILCOW_URL + '/api/v1/add/alias', { method: 'POST', headers: mch, body: JSON.stringify({ address: '@' + dom, goto: 'inbox@' + dom, active: 1 }) });
             mc.alias = r3.ok ? 'ok' : 'failed';
         } catch (e) { mc.error = e.message; }
     }
-    list.push(dom);
-    await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(list), updated_at: new Date().toISOString() });
+
+    // Store domain with IMAP credentials in Supabase
+    const newDomain = { domain: dom, imapUser: 'inbox@' + dom, imapPass: mcPass, mailcow: mc };
+    existing.push(newDomain);
+    await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(existing), updated_at: new Date().toISOString() });
     res.json({ success: true, mailcow: mc });
 });
 
 app.delete('/api/admin/domains/:domain', adminAuth, async (req, res) => {
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
-    const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
-    const list = data ? JSON.parse(data.value) : [];
-    const filtered = list.filter(d => d !== req.params.domain);
+    const existing = await getCustomDomainsData();
+    const filtered = existing.filter(d => d.domain !== req.params.domain);
     await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(filtered), updated_at: new Date().toISOString() });
     res.json({ success: true });
+});
+
+// Domain status check — verifies DNS + IMAP connectivity
+app.get('/api/admin/domains/:domain/status', adminAuth, async (req, res) => {
+    const dom = req.params.domain;
+    const status = { dns: false, imap: false, mailcow: {} };
+
+    // Check DNS MX record
+    try {
+        const mx = await dns.resolveMx(dom);
+        status.dns = mx && mx.length > 0;
+        status.mxRecords = mx.map(r => r.exchange);
+    } catch { status.dns = false; }
+
+    // Check IMAP connectivity
+    const entry = await findDomainEntry('test@' + dom);
+    if (entry) {
+        let client;
+        try {
+            client = new ImapFlow(getImapConfig(entry));
+            await Promise.race([client.connect(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+            status.imap = true;
+            await client.logout();
+        } catch { status.imap = false; }
+        finally { if (client) try { await client.logout(); } catch {} }
+    }
+
+    // Get stored mailcow status
+    const customData = await getCustomDomainsData();
+    const found = customData.find(d => d.domain === dom);
+    if (found) status.mailcow = found.mailcow || {};
+
+    // Env domain is always fully configured
+    if (domains.find(d => d.domain === dom)) {
+        status.dns = true;
+        status.imap = true;
+        status.mailcow = { domain: 'ok', mailbox: 'ok', alias: 'ok' };
+    }
+
+    res.json(status);
 });
 
 app.get('/api/admin/aliases', adminAuth, async (req, res) => {
@@ -273,7 +338,7 @@ app.get('/api/emails/:alias', rateLimit, async (req, res) => {
         return res.json({ alias, count: cached.length, emails: cached.map(formatCached), cached: true });
     }
 
-    const domainEntry = findDomainEntry(alias);
+    const domainEntry = await findDomainEntry(alias);
     if (!domainEntry) {
         return res.json({ alias, count: cached?.length || 0, emails: (cached || []).map(formatCached) });
     }

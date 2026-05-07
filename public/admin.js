@@ -50,25 +50,156 @@ async function loadDomainManager() {
         const env = d.envDomains || [], custom = d.customDomains || [];
         $('totalDomains').textContent = env.length + custom.length;
         let h = '';
-        env.forEach((dom, i) => {
+        env.forEach((item, i) => {
             h += `<div class="domain-item" style="animation:fadeUp .2s ease ${i*.03}s both">
-                <div class="domain-info"><span class="alias-email">${dom}</span><span class="alias-badge badge-primary">ENV</span></div>
+                <div class="domain-info">
+                    <span class="alias-email">${item.domain}</span>
+                    <span class="alias-badge badge-primary">ENV</span>
+                    <span class="domain-status domain-active">🟢 Active</span>
+                </div>
                 <div class="alias-actions">
-                    <button class="abtn" onclick="showDns('${dom}')" title="DNS Instructions">📋</button>
+                    <button class="abtn" onclick="showDns('${item.domain}')" title="DNS Instructions">📋</button>
                 </div>
             </div>`;
         });
-        custom.forEach((dom, i) => {
+        custom.forEach((item, i) => {
+            const mc = item.mailcow || {};
+            const mcOk = mc.domain === 'ok' && mc.mailbox === 'ok' && mc.alias === 'ok';
             h += `<div class="domain-item" style="animation:fadeUp .2s ease ${(env.length+i)*.03}s both">
-                <div class="domain-info"><span class="alias-email">${dom}</span><span class="alias-badge badge-secondary">CUSTOM</span></div>
+                <div class="domain-info">
+                    <span class="alias-email">${item.domain}</span>
+                    <span class="alias-badge badge-secondary">CUSTOM</span>
+                    <span class="domain-status domain-checking" id="ds-${item.domain.replace(/\./g,'-')}">⏳ Checking...</span>
+                </div>
                 <div class="alias-actions">
-                    <button class="abtn" onclick="showDns('${dom}')" title="DNS Instructions">📋</button>
-                    <button class="abtn abtn-del" onclick="removeDomain('${dom}')" title="Remove">🗑️</button>
+                    <button class="abtn" onclick="checkAndShowStatus('${item.domain}')" title="Check Status & Setup Guide">🔍</button>
+                    <button class="abtn" onclick="showDns('${item.domain}')" title="DNS Instructions">📋</button>
+                    <button class="abtn abtn-del" onclick="removeDomain('${item.domain}')" title="Remove">🗑️</button>
                 </div>
             </div>`;
         });
         $('domainsList').innerHTML = h || '<div class="empty" style="padding:20px"><p style="color:var(--text-3)">No domains configured</p></div>';
+        // Auto-check status for custom domains
+        custom.forEach(item => checkDomainStatus(item.domain));
     } catch {}
+}
+
+async function checkDomainStatus(dom) {
+    const el = document.getElementById('ds-' + dom.replace(/\./g, '-'));
+    if (!el) return;
+    try {
+        const r = await fetch(`/api/admin/domains/${dom}/status`, { headers: { Authorization: `Bearer ${token}` } });
+        const s = await r.json();
+        const mc = s.mailcow || {};
+        const mcOk = mc.domain === 'ok' && mc.mailbox === 'ok' && mc.alias === 'ok';
+        const allGood = s.dns && s.imap && mcOk;
+        if (allGood) {
+            el.className = 'domain-status domain-active';
+            el.textContent = '🟢 Fully Active';
+        } else if (s.dns && mcOk) {
+            el.className = 'domain-status domain-partial';
+            el.textContent = '🟡 DNS OK — IMAP Pending';
+        } else if (mcOk) {
+            el.className = 'domain-status domain-pending';
+            el.textContent = '🟠 MailCow OK — DNS Pending';
+        } else {
+            el.className = 'domain-status domain-inactive';
+            el.textContent = '🔴 Setup Needed';
+        }
+        el.dataset.status = JSON.stringify(s);
+    } catch {
+        el.className = 'domain-status domain-inactive';
+        el.textContent = '❓ Check Failed';
+    }
+}
+
+async function checkAndShowStatus(dom) {
+    const el = document.getElementById('ds-' + dom.replace(/\./g, '-'));
+    if (el) { el.textContent = '⏳ Checking...'; el.className = 'domain-status domain-checking'; }
+
+    try {
+        const r = await fetch(`/api/admin/domains/${dom}/status`, { headers: { Authorization: `Bearer ${token}` } });
+        const s = await r.json();
+        showStatusModal(dom, s);
+        // Also update the inline status
+        checkDomainStatus(dom);
+    } catch { toast('Status check failed', 'err'); }
+}
+
+function showStatusModal(domain, s) {
+    const mc = s.mailcow || {};
+    const check = v => v ? '<span style="color:#22c55e;font-weight:700">✅ Done</span>' : '<span style="color:#ef4444;font-weight:700">❌ Not Done</span>';
+    const mcCheck = v => v === 'ok' ? '<span style="color:#22c55e;font-weight:700">✅ Done</span>' : '<span style="color:#ef4444;font-weight:700">❌ Not Done</span>';
+    const ip = serverIP || '79.137.74.166';
+    const hostname = 'mail.diaa.store';
+
+    $('dnsContent').innerHTML = `
+        <div class="dns-section">
+            <h3>📧 Domain: <span style="color:#a78bfa">${domain}</span></h3>
+            <p class="dns-desc">Current activation status for this domain:</p>
+        </div>
+
+        <div class="dns-section" style="background:rgba(255,255,255,.03);border-radius:12px;padding:20px;border:1px solid var(--border)">
+            <h4>⚡ Activation Status</h4>
+            <div style="display:grid;gap:10px;margin-top:12px;font-size:13px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+                    <span>🌐 DNS Records (MX)</span>${check(s.dns)}
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+                    <span>📬 IMAP Connection</span>${check(s.imap)}
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+                    <span>📦 MailCow Domain</span>${mcCheck(mc.domain)}
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+                    <span>📧 Mailbox (inbox@${domain})</span>${mcCheck(mc.mailbox)}
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+                    <span>🔄 Catch-all Alias</span>${mcCheck(mc.alias)}
+                </div>
+            </div>
+            ${s.mxRecords ? `<p style="margin-top:10px;font-size:11px;color:var(--text-3)">MX Records: ${s.mxRecords.join(', ')}</p>` : ''}
+        </div>
+
+        ${!s.dns ? `
+        <div class="dns-section" style="margin-top:16px">
+            <h4 style="color:#ef4444">⚠️ DNS Records Required</h4>
+            <p class="dns-desc">Add these DNS records at your domain registrar:</p>
+            <table class="dns-table">
+                <tr><th>Type</th><th>Name</th><th>Value</th><th>Priority</th></tr>
+                <tr><td><span class="dns-type mx">MX</span></td><td>@</td><td class="dns-val" onclick="copyText('${hostname}')">${hostname}</td><td>10</td></tr>
+                <tr><td><span class="dns-type a">A</span></td><td>mail</td><td class="dns-val" onclick="copyText('${ip}')">${ip}</td><td>—</td></tr>
+                <tr><td><span class="dns-type txt">TXT</span></td><td>@</td><td class="dns-val" onclick="copyText('v=spf1 mx a ip4:${ip} ~all')">v=spf1 mx a ip4:${ip} ~all</td><td>—</td></tr>
+                <tr><td><span class="dns-type cname">CNAME</span></td><td>autodiscover</td><td class="dns-val" onclick="copyText('${hostname}')">${hostname}</td><td>—</td></tr>
+            </table>
+            <p class="dns-tip">💡 Click any value to copy it</p>
+        </div>` : ''}
+
+        ${mc.domain !== 'ok' ? `
+        <div class="dns-section">
+            <h4 style="color:#ef4444">⚠️ MailCow Setup Required</h4>
+            <ol class="dns-steps">
+                <li>Open <b>${hostname}</b> admin panel</li>
+                <li><b>Configuration → Mail Setup → Domains</b> → Add <code>${domain}</code></li>
+                <li><b>Mailboxes</b> → Add <code>inbox@${domain}</code></li>
+                <li><b>Aliases</b> → Add <code>@${domain}</code> → <code>inbox@${domain}</code> (catch-all)</li>
+            </ol>
+        </div>` : ''}
+
+        <div class="dns-section">
+            <h4>🔒 SSL Config <span class="dns-hint">(mailcow.conf)</span></h4>
+            <p>Add to <code>ADDITIONAL_SAN</code>:</p>
+            <div class="dns-code" onclick="copyText('autodiscover.${domain},mail.${domain}')">autodiscover.${domain},mail.${domain}</div>
+            <p style="margin-top:8px;font-size:11px;color:var(--text-3)">Then: <code>docker compose down && docker compose up -d</code></p>
+        </div>
+
+        ${s.dns && s.imap && mc.domain === 'ok' ? `
+        <div class="dns-section" style="background:rgba(34,197,94,.08);border-radius:12px;padding:16px;border:1px solid rgba(34,197,94,.3)">
+            <h4 style="color:#22c55e">🎉 Domain Fully Active!</h4>
+            <p style="font-size:12px;color:var(--text-2)">All checks passed. You can now generate emails for @${domain}</p>
+        </div>` : ''}
+    `;
+    $('dnsModal').style.display = 'flex';
 }
 
 async function addDomain() {
@@ -81,15 +212,16 @@ async function addDomain() {
             const d = await r.json();
             const mc = d.mailcow || {};
             if (mc.domain === 'ok') {
-                toast(`✅ ${dom} added + MailCow configured automatically!`, 'ok');
+                toast(`✅ ${dom} added + MailCow auto-configured!`, 'ok');
             } else if (mc.domain === 'skipped') {
-                toast(`Added ${dom} (MailCow API key not set — manual setup needed)`, 'inf');
+                toast(`Added ${dom} (MailCow API key not set)`, 'inf');
             } else {
-                toast(`Added ${dom} (MailCow auto-setup partially failed)`, 'inf');
+                toast(`Added ${dom} (MailCow auto-setup failed)`, 'inf');
             }
             $('newDomain').value = '';
             loadDomains(); loadDomainManager();
-            showDns(dom, mc);
+            // Show status check after a moment
+            setTimeout(() => checkAndShowStatus(dom), 500);
         } else toast('Failed to add domain', 'err');
     } catch { toast('Failed', 'err'); }
 }
@@ -106,22 +238,12 @@ function showDns(domain, mc) {
     mc = mc || {};
     const ip = serverIP || '79.137.74.166';
     const hostname = 'mail.diaa.store';
-    const s = v => v === 'ok' ? '<span style="color:#22c55e;font-weight:700">✅ Done</span>' : v === 'skipped' ? '<span style="color:#f59e0b">⏭ Skipped (no API key)</span>' : '<span style="color:#ef4444">❌ Manual setup needed</span>';
-    const mcSection = mc.domain ? `
-        <div class="dns-section" style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;border:1px solid var(--border)">
-            <h4>⚡ Auto-Setup Results</h4>
-            <div style="display:grid;gap:8px;margin-top:10px;font-size:12px">
-                <div style="display:flex;justify-content:space-between">Domain in MailCow ${s(mc.domain)}</div>
-                <div style="display:flex;justify-content:space-between">Mailbox inbox@${domain} ${s(mc.mailbox)}</div>
-                <div style="display:flex;justify-content:space-between">Catch-all alias ${s(mc.alias)}</div>
-            </div>
-        </div>` : '';
     $('dnsContent').innerHTML = `
         <div class="dns-section">
             <h3>📧 Domain: <span style="color:#a78bfa">${domain}</span></h3>
-            <p class="dns-desc">Follow these steps to set up email for this domain:</p>
+            <p class="dns-desc">Complete setup guide for this domain:</p>
         </div>
-        ${mcSection}
+
         <div class="dns-section">
             <h4>1️⃣ DNS Records <span class="dns-hint">(at your domain registrar)</span></h4>
             <table class="dns-table">
@@ -135,34 +257,18 @@ function showDns(domain, mc) {
         </div>
 
         <div class="dns-section">
-            <h4>2️⃣ MailCow Setup ${mc.domain === 'ok' ? '<span style="color:#22c55e;font-size:11px"> — Auto-configured ✅</span>' : ''}</h4>
-            <ol class="dns-steps">
-                <li>Open <b>${hostname}</b> admin panel</li>
-                <li><b>Configuration → Mail Setup → Domains</b> → Add <code>${domain}</code></li>
-                <li><b>Mailboxes</b> → Add <code>inbox@${domain}</code></li>
-                <li><b>Aliases</b> → Add <code>@${domain}</code> → <code>inbox@${domain}</code> (catch-all)</li>
-            </ol>
-        </div>
-
-        <div class="dns-section">
-            <h4>3️⃣ MailCow Config <span class="dns-hint">(mailcow.conf)</span></h4>
+            <h4>2️⃣ MailCow Config <span class="dns-hint">(mailcow.conf)</span></h4>
             <p>Add to <code>ADDITIONAL_SAN</code>:</p>
             <div class="dns-code" onclick="copyText('autodiscover.${domain},mail.${domain}')">autodiscover.${domain},mail.${domain}</div>
-            <p style="margin-top:8px;font-size:11px;color:var(--text-3)">Then restart: <code>docker compose down && docker compose up -d</code></p>
+            <p style="margin-top:8px;font-size:11px;color:var(--text-3)">Then: <code>docker compose down && docker compose up -d</code></p>
         </div>
 
         <div class="dns-section">
-            <h4>4️⃣ Vercel (if using temp.${domain})</h4>
+            <h4>3️⃣ Vercel <span class="dns-hint">(if using temp.${domain})</span></h4>
             <ol class="dns-steps">
                 <li>Vercel → Project → Settings → Domains → Add <code>temp.${domain}</code></li>
                 <li>Add DNS: <span class="dns-type cname" style="font-size:10px">CNAME</span> <code>temp</code> → <code>cname.vercel-dns.com</code></li>
             </ol>
-        </div>
-
-        <div class="dns-section">
-            <h4>5️⃣ Environment Variables</h4>
-            <p>Add to <code>.env</code> / Docker / Vercel:</p>
-            <div class="dns-code" onclick="copyText('MAIL_DOMAIN_N=${domain}\\nIMAP_USER_N=inbox@${domain}\\nIMAP_PASS_N=YOUR_PASSWORD')">MAIL_DOMAIN_N=${domain}<br>IMAP_USER_N=inbox@${domain}<br>IMAP_PASS_N=YOUR_PASSWORD</div>
         </div>
     `;
     $('dnsModal').style.display = 'flex';
