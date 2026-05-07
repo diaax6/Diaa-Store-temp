@@ -222,6 +222,65 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
     .acts .btn { width:100%; justify-content:center; }
 }
 
+/* ── Hint ────────────────────────────────────── */
+.hint { font-size:11px; color:var(--text-3); margin-top:12px; text-align:center; }
+
+/* ── Admin Login ────────────────────────────── */
+.login-wrap { display:flex; align-items:center; justify-content:center; min-height:70vh; }
+.login-card { max-width:400px; width:100%; text-align:center; padding:48px 36px; }
+.login-icon { font-size:56px; margin-bottom:16px; }
+.login-title { font-size:24px; font-weight:900; background:var(--gradient-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:6px; }
+.login-sub { font-size:13px; color:var(--text-3); margin-bottom:28px; }
+.login-form { display:flex; flex-direction:column; gap:8px; }
+.login-form .email-in { padding-right:16px; text-align:center; }
+
+/* ── Header Actions ─────────────────────────── */
+.hdr-actions { display:flex; gap:8px; align-items:center; }
+.hdr { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+
+/* ── Stats Row ──────────────────────────────── */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; animation:fadeUp .4s ease; }
+.stat-card { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); padding:22px; text-align:center; backdrop-filter:blur(24px); position:relative; overflow:hidden; }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--gradient); }
+.stat-card-val { font-size:32px; font-weight:900; background:var(--gradient-text); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.stat-card-lbl { font-size:11px; color:var(--text-3); text-transform:uppercase; letter-spacing:1.5px; font-weight:600; margin-top:4px; }
+
+/* ── Generate Row ───────────────────────────── */
+.gen-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.gen-row .domain-select { flex-shrink:0; position:relative; transform:none; top:auto; right:auto; }
+
+/* ── Badge ──────────────────────────────────── */
+.badge { background:var(--gradient); color:#fff; font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; margin-left:8px; }
+.alias-badge { font-size:9px; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+.badge-primary { background:rgba(124,58,237,.15); color:#a78bfa; border:1px solid rgba(124,58,237,.3); }
+.badge-secondary { background:rgba(6,182,212,.12); color:#2dd4bf; border:1px solid rgba(6,182,212,.25); }
+
+/* ── Alias List ─────────────────────────────── */
+.aliases-list { display:flex; flex-direction:column; gap:4px; }
+.alias-item { display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border:1px solid transparent; border-radius:var(--r-md); transition:all var(--t-base); gap:12px; }
+.alias-item:hover { background:var(--bg-hover); border-color:var(--border); }
+.alias-main { flex:1; min-width:0; }
+.alias-email-wrap { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.alias-email { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600; color:var(--text-0); }
+.alias-status { font-size:10px; }
+.status-active { color:#10b981; }
+.status-inactive { color:#ef4444; }
+.alias-meta { display:flex; gap:14px; font-size:11px; color:var(--text-3); }
+.alias-actions { display:flex; gap:4px; flex-shrink:0; }
+.abtn { width:34px; height:34px; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer; font-size:14px; display:grid; place-items:center; transition:all var(--t-base); }
+.abtn:hover { background:var(--bg-hover); border-color:var(--border-h); transform:translateY(-1px); }
+.abtn-del:hover { border-color:#ef4444; background:rgba(239,68,68,.08); }
+
+@media(max-width:768px) {
+    .stats-row { grid-template-columns:1fr; }
+    .gen-row { flex-direction:column; }
+    .gen-row .domain-select { width:100%; }
+    .alias-item { flex-direction:column; align-items:flex-start; }
+    .alias-actions { width:100%; justify-content:flex-end; }
+    .hdr { text-align:center; justify-content:center; }
+    .hdr-actions { width:100%; justify-content:center; }
+}
+
 ::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.06); border-radius:3px; }

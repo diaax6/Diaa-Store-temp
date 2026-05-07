@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TempMail Admin — Dashboard</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#06080f">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="bg-fx">
+        <div class="mesh m1"></div>
+        <div class="mesh m2"></div>
+        <div class="mesh m3"></div>
+        <div class="grid"></div>
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+
+    <!-- LOGIN SCREEN -->
+    <div class="app" id="loginScreen">
+        <div class="login-wrap">
+            <div class="card login-card">
+                <div class="login-icon">🛡️</div>
+                <h1 class="login-title">Admin Login</h1>
+                <p class="login-sub">TempMail Control Panel</p>
+                <div class="login-form">
+                    <input type="password" class="email-in" id="passInput" placeholder="Enter admin password..." autocomplete="current-password">
+                    <button class="btn btn-go" id="loginBtn" onclick="doLogin()" style="width:100%;justify-content:center;margin-top:12px">
+                        <span class="btn-shine"></span>
+                        🔐 Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="app" id="dashboard" style="display:none">
+        <header class="hdr">
+            <div class="hdr-brand">
+                <div class="hdr-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">🛡️</div>
+                <span class="hdr-name">TempMail Admin</span>
+            </div>
+            <div class="hdr-actions">
+                <a href="/" class="btn btn-back" style="font-size:11px;padding:8px 14px">📨 Client View</a>
+                <button class="btn btn-back" onclick="logout()" style="font-size:11px;padding:8px 14px">🚪 Logout</button>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-card-val" id="totalAliases">0</div>
+                <div class="stat-card-lbl">Total Emails</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-val" id="activeAliases">0</div>
+                <div class="stat-card-lbl">Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-val" id="totalMessages">0</div>
+                <div class="stat-card-lbl">Messages</div>
+            </div>
+        </div>
+
+        <!-- Generate -->
+        <div class="card">
+            <div class="card-label"><i>➕</i> GENERATE NEW EMAIL</div>
+            <div class="gen-row">
+                <select class="domain-select" id="domainSelect"></select>
+                <input type="text" class="email-in" id="noteInput" placeholder="Note (optional)..." style="padding-right:16px;flex:1">
+                <button class="btn btn-go" id="genBtn" onclick="generateAlias()">
+                    <span class="btn-shine"></span>
+                    🎲 Generate
+                </button>
+            </div>
+        </div>
+
+        <!-- Aliases List -->
+        <div class="card">
+            <div class="card-label"><i>📧</i> MANAGED EMAILS <span class="badge" id="aliasBadge">0</span></div>
+            <div id="aliasesList" class="aliases-list">
+                <div class="loading"><div class="spin"></div><span class="load-txt">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin.js"></script>
+</body>
+</html>

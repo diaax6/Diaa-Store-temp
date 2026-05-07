@@ -15,4 +15,7 @@ services:
       - IMAP_USER_2=inbox@diaastore.cloud
       - IMAP_PASS_2=TempMail2026
       - MAIL_DOMAIN_2=diaastore.cloud
+      - SUPABASE_URL=https://lpuscpaazrfiqcwrvwxd.supabase.co
+      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdXNjcGFhenJmaXFjd3J2d3hkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODExMDkxMCwiZXhwIjoyMDkzNjg2OTEwfQ.1VIsgYRh8AnaTyEKCCswiGMgc0sB3vz4Ro2AmN_OL_Q
+      - ADMIN_PASSWORD=DiaaAdmin2026
       - PORT=3000
