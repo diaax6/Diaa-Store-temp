@@ -44,7 +44,7 @@ function getImapConfig(domainEntry) {
             pass: domainEntry.pass,
         },
         tls: {
-            servername: 'mail.diaastore.cloud',
+            servername: 'mail.diaa.store',
             rejectUnauthorized: false,
         },
         logger: false,

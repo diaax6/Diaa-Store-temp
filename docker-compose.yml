@@ -9,10 +9,10 @@ services:
     environment:
       - IMAP_HOST=127.0.0.1
       - IMAP_PORT=993
-      - IMAP_USER_1=inbox@diaastore.cloud
-      - IMAP_PASS_1=TempMail2026
-      - MAIL_DOMAIN_1=diaastore.cloud
-      - IMAP_USER_2=inbox@diaa.store
-      - IMAP_PASS_2=Diaatemp2026
-      - MAIL_DOMAIN_2=diaa.store
+      - IMAP_USER_1=inbox@diaa.store
+      - IMAP_PASS_1=Diaatemp2026
+      - MAIL_DOMAIN_1=diaa.store
+      - IMAP_USER_2=inbox@diaastore.cloud
+      - IMAP_PASS_2=TempMail2026
+      - MAIL_DOMAIN_2=diaastore.cloud
       - PORT=3000
