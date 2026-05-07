@@ -130,7 +130,7 @@ async function generateAlias() {
         const r = await fetch('/api/admin/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ domain: $('domainSelect').value, note: $('noteInput').value.trim() || null })
+            body: JSON.stringify({ domain: $('domainSelect').value, customName: $('customName').value.trim() || null, note: $('noteInput').value.trim() || null })
         });
         if (r.status === 401) { logout(); return; }
         if (r.status === 409) { toast('Already exists, try again', 'err'); btn.disabled = false; return; }
@@ -138,6 +138,7 @@ async function generateAlias() {
         if (d.alias) {
             toast(`Created: ${d.alias.email}`, 'ok');
             $('noteInput').value = '';
+            $('customName').value = '';
             await copyText(d.alias.email);
             loadAliases();
         }

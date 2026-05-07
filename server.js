@@ -118,10 +118,18 @@ app.post('/api/admin/generate', adminAuth, async (req, res) => {
     const domain = req.body.domain || domains[0]?.domain;
     if (!domains.find(d => d.domain === domain)) return res.status(400).json({ error: 'Invalid domain' });
 
-    const words = ['alpha','beta','gamma','delta','echo','foxtrot','nova','pixel','cyber','neon','flux','orbit','prism','vortex','zenith','blaze','storm','pulse','spark','drift','shade','frost','ember','surge','wave','bolt','flash','glint','crypt','phantom','nebula','quasar','titan','comet','lunar','solar','vapor','astro','turbo','rapid'];
-    const word = words[Math.floor(Math.random() * words.length)];
-    const num = crypto.randomInt(1000, 9999);
-    const email = `${word}${num}@${domain}`;
+    let localPart;
+    if (req.body.customName) {
+        // Custom name: sanitize
+        localPart = req.body.customName.toLowerCase().replace(/[^a-z0-9._-]/g, '').trim();
+        if (!localPart || localPart.length < 2) return res.status(400).json({ error: 'Custom name must be at least 2 characters (a-z, 0-9, . _ -)' });
+        if (localPart.length > 64) return res.status(400).json({ error: 'Custom name too long (max 64 chars)' });
+    } else {
+        // Random
+        const words = ['alpha','beta','gamma','delta','echo','foxtrot','nova','pixel','cyber','neon','flux','orbit','prism','vortex','zenith','blaze','storm','pulse','spark','drift','shade','frost','ember','surge','wave','bolt','flash','glint','crypt','phantom','nebula','quasar','titan','comet','lunar','solar','vapor','astro','turbo','rapid'];
+        localPart = words[Math.floor(Math.random() * words.length)] + crypto.randomInt(1000, 9999);
+    }
+    const email = `${localPart}@${domain}`;
 
     const { data, error } = await supabase
         .from('aliases')

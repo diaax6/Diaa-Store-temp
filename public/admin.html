@@ -14,6 +14,8 @@
         <div class="mesh m1"></div>
         <div class="mesh m2"></div>
         <div class="mesh m3"></div>
+        <div class="stars"></div>
+        <div class="shooting"></div>
         <div class="grid"></div>
     </div>
 
@@ -70,12 +72,15 @@
         <div class="card">
             <div class="card-label"><i>➕</i> GENERATE NEW EMAIL</div>
             <div class="gen-row">
+                <input type="text" class="email-in" id="customName" placeholder="Custom name (leave empty for random)" style="padding-right:16px;flex:1" autocomplete="off" spellcheck="false">
                 <select class="domain-select" id="domainSelect"></select>
-                <input type="text" class="email-in" id="noteInput" placeholder="Note (optional)..." style="padding-right:16px;flex:1">
                 <button class="btn btn-go" id="genBtn" onclick="generateAlias()">
                     <span class="btn-shine"></span>
                     🎲 Generate
                 </button>
+            </div>
+            <div class="gen-row" style="margin-top:8px">
+                <input type="text" class="email-in" id="noteInput" placeholder="Note (optional)..." style="padding-right:16px;flex:1">
             </div>
         </div>
 
