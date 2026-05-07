@@ -225,7 +225,13 @@ async function removeDomain(dom) {
     if (!confirm(`Remove domain ${dom}?\nExisting emails won't be deleted.`)) return;
     try {
         const r = await fetch(`/api/admin/domains/${dom}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-        if (r.ok) { toast(`Removed: ${dom}`, 'ok'); loadDomains(); loadDomainManager(); } else toast('Failed', 'err');
+        if (r.ok) {
+            const d = await r.json();
+            const mc = d.mailcow || {};
+            if (mc.deleted === 'ok') toast(`🗑️ ${dom} removed from system + MailCow`, 'ok');
+            else toast(`Removed: ${dom}`, 'ok');
+            loadDomains(); loadDomainManager();
+        } else toast('Failed', 'err');
     } catch { toast('Failed', 'err'); }
 }
 

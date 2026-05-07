@@ -178,10 +178,22 @@ app.post('/api/admin/domains', adminAuth, async (req, res) => {
 
 app.delete('/api/admin/domains/:domain', adminAuth, async (req, res) => {
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+    const dom = req.params.domain;
+
+    // Delete from MailCow
+    const mc = { deleted: 'skipped' };
+    if (MAILCOW_API_KEY) {
+        const mch = { 'Content-Type': 'application/json', 'X-API-Key': MAILCOW_API_KEY };
+        try {
+            const r = await fetch(MAILCOW_URL + '/api/v1/delete/domain', { method: 'POST', headers: mch, body: JSON.stringify([dom]) });
+            mc.deleted = r.ok ? 'ok' : 'failed';
+        } catch (e) { mc.error = e.message; }
+    }
+
     const existing = await getCustomDomainsData();
-    const filtered = existing.filter(d => d.domain !== req.params.domain);
+    const filtered = existing.filter(d => d.domain !== dom);
     await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(filtered), updated_at: new Date().toISOString() });
-    res.json({ success: true });
+    res.json({ success: true, mailcow: mc });
 });
 
 // Domain status check — verifies DNS + IMAP connectivity
@@ -189,11 +201,11 @@ app.get('/api/admin/domains/:domain/status', adminAuth, async (req, res) => {
     const dom = req.params.domain;
     const status = { dns: false, imap: false, mailcow: {} };
 
-    // Check DNS MX record
+    // Check DNS MX record — must point to mail.diaa.store
     try {
         const mx = await dns.resolveMx(dom);
-        status.dns = mx && mx.length > 0;
-        status.mxRecords = mx.map(r => r.exchange);
+        status.mxRecords = mx.map(r => r.exchange.toLowerCase().replace(/\.$/, ''));
+        status.dns = status.mxRecords.some(r => r === 'mail.diaa.store');
     } catch { status.dns = false; }
 
     // Check IMAP connectivity
