@@ -218,6 +218,14 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
 
+/* ── Social Buttons ─────────────────────────── */
+.ftr-social { display:flex; gap:12px; justify-content:center; margin:20px 0 16px; }
+.social-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 24px; border-radius:50px; font-size:13px; font-weight:600; text-decoration:none; transition:all .3s ease; border:1.5px solid transparent; }
+.social-wa { background:rgba(37,211,102,.1); color:#25d366; border-color:rgba(37,211,102,.25); }
+.social-wa:hover { background:rgba(37,211,102,.2); border-color:#25d366; box-shadow:0 0 20px rgba(37,211,102,.2); transform:translateY(-2px); }
+.social-fb { background:rgba(24,119,242,.1); color:#1877f2; border-color:rgba(24,119,242,.25); }
+.social-fb:hover { background:rgba(24,119,242,.2); border-color:#1877f2; box-shadow:0 0 20px rgba(24,119,242,.2); transform:translateY(-2px); }
+
 /* ── Responsive ──────────────────────────────── */
 @media(max-width:768px) {
     .app { padding:28px 16px 40px; }
