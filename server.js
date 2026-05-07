@@ -180,14 +180,25 @@ app.delete('/api/admin/domains/:domain', adminAuth, async (req, res) => {
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
     const dom = req.params.domain;
 
-    // Delete from MailCow
-    const mc = { deleted: 'skipped' };
+    // Delete from MailCow: alias → mailbox → domain
+    const mc = { alias: 'skipped', mailbox: 'skipped', domain: 'skipped' };
     if (MAILCOW_API_KEY) {
         const mch = { 'Content-Type': 'application/json', 'X-API-Key': MAILCOW_API_KEY };
         try {
-            const r = await fetch(MAILCOW_URL + '/api/v1/delete/domain', { method: 'POST', headers: mch, body: JSON.stringify([dom]) });
-            mc.deleted = r.ok ? 'ok' : 'failed';
-        } catch (e) { mc.error = e.message; }
+            // 1. Delete catch-all alias
+            const r1 = await fetch(MAILCOW_URL + '/api/v1/delete/alias', { method: 'POST', headers: mch, body: JSON.stringify(['@' + dom]) });
+            mc.alias = r1.ok ? 'ok' : 'failed';
+        } catch (e) { mc.alias = 'error'; }
+        try {
+            // 2. Delete mailbox
+            const r2 = await fetch(MAILCOW_URL + '/api/v1/delete/mailbox', { method: 'POST', headers: mch, body: JSON.stringify(['inbox@' + dom]) });
+            mc.mailbox = r2.ok ? 'ok' : 'failed';
+        } catch (e) { mc.mailbox = 'error'; }
+        try {
+            // 3. Delete domain
+            const r3 = await fetch(MAILCOW_URL + '/api/v1/delete/domain', { method: 'POST', headers: mch, body: JSON.stringify([dom]) });
+            mc.domain = r3.ok ? 'ok' : 'failed';
+        } catch (e) { mc.domain = 'error'; }
     }
 
     const existing = await getCustomDomainsData();

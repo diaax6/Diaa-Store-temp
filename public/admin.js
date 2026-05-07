@@ -228,8 +228,9 @@ async function removeDomain(dom) {
         if (r.ok) {
             const d = await r.json();
             const mc = d.mailcow || {};
-            if (mc.deleted === 'ok') toast(`🗑️ ${dom} removed from system + MailCow`, 'ok');
-            else toast(`Removed: ${dom}`, 'ok');
+            if (mc.domain === 'ok') toast(`🗑️ ${dom} fully removed (alias + mailbox + domain)`, 'ok');
+            else if (mc.domain === 'skipped') toast(`Removed ${dom} (no API key)`, 'ok');
+            else toast(`Removed ${dom} from list (MailCow cleanup may need manual check)`, 'inf');
             loadDomains(); loadDomainManager();
         } else toast('Failed', 'err');
     } catch { toast('Failed', 'err'); }
