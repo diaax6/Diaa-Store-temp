@@ -5,19 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TempMail Admin — Dashboard</title>
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#06080f">
+    <meta name="theme-color" content="#030014">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="bg-fx">
-        <div class="mesh m1"></div>
-        <div class="mesh m2"></div>
-        <div class="mesh m3"></div>
-        <div class="stars"></div>
-        <div class="shooting"></div>
-        <div class="grid"></div>
-    </div>
+    <script src="/space.js"></script>
 
     <div class="toasts" id="toasts"></div>
 
@@ -89,6 +82,34 @@
             <div class="card-label"><i>📧</i> MANAGED EMAILS <span class="badge" id="aliasBadge">0</span></div>
             <div id="aliasesList" class="aliases-list">
                 <div class="loading"><div class="spin"></div><span class="load-txt">Loading...</span></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="card">
+            <div class="card-label"><i>⚙️</i> SETTINGS</div>
+            <div class="settings-section">
+                <h3 class="settings-title">🔐 Change Admin Password</h3>
+                <div class="gen-row">
+                    <input type="password" class="email-in" id="newPass" placeholder="New password..." style="padding-right:16px;flex:1">
+                    <input type="password" class="email-in" id="confirmPass" placeholder="Confirm password..." style="padding-right:16px;flex:1">
+                    <button class="btn btn-go" onclick="changePassword()" style="flex-shrink:0">
+                        <span class="btn-shine"></span>
+                        💾 Save
+                    </button>
+                </div>
+            </div>
+            <hr class="settings-divider">
+            <div class="settings-section">
+                <h3 class="settings-title">🔗 Footer Service Links</h3>
+                <div id="linksEditor"></div>
+                <div class="gen-row" style="margin-top:10px">
+                    <button class="btn btn-back" onclick="addLink()" style="font-size:11px">➕ Add Link</button>
+                    <button class="btn btn-go" onclick="saveLinks()" style="flex-shrink:0">
+                        <span class="btn-shine"></span>
+                        💾 Save Links
+                    </button>
+                </div>
             </div>
         </div>
     </div>

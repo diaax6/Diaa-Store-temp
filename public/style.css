@@ -291,6 +291,13 @@ body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-0); color:v
 .abtn:hover { background:var(--bg-hover); border-color:var(--border-h); transform:translateY(-1px); }
 .abtn-del:hover { border-color:#ef4444; background:rgba(239,68,68,.08); }
 
+/* ── Settings Section ───────────────────────── */
+.settings-section { padding:8px 0; }
+.settings-title { font-size:13px; font-weight:700; color:var(--text-1); margin-bottom:12px; }
+.settings-divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+.link-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.link-in { font-size:12px !important; }
+
 @media(max-width:768px) {
     .stats-row { grid-template-columns:1fr; }
     .gen-row { flex-direction:column; }

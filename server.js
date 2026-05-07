@@ -87,8 +87,14 @@ function rateLimit(req, res, next) {
 // ADMIN ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
 
-app.post('/api/admin/login', (req, res) => {
-    if (req.body.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
+app.post('/api/admin/login', async (req, res) => {
+    let password = ADMIN_PASSWORD;
+    // Check if password was overridden in Supabase
+    if (supabase) {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'admin_password').single();
+        if (data) password = JSON.parse(data.value);
+    }
+    if (req.body.password !== password) return res.status(401).json({ error: 'Invalid password' });
     res.json({ token: generateToken() });
 });
 
@@ -157,6 +163,33 @@ app.patch('/api/admin/aliases/:id', adminAuth, async (req, res) => {
     const { data, error } = await supabase.from('aliases').update(updates).eq('id', req.params.id).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.json({ alias: data });
+});
+
+// ─── Settings Endpoints ─────────────────────────────────────────────────────
+
+// Change admin password (stores in Supabase)
+app.post('/api/admin/password', adminAuth, async (req, res) => {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+    await supabase.from('settings').upsert({ key: 'admin_password', value: JSON.stringify(newPassword), updated_at: new Date().toISOString() });
+    res.json({ success: true });
+});
+
+// Get footer links
+app.get('/api/settings/links', async (req, res) => {
+    if (!supabase) return res.json({ links: [] });
+    const { data } = await supabase.from('settings').select('value').eq('key', 'footer_links').single();
+    res.json({ links: data ? JSON.parse(data.value) : [] });
+});
+
+// Update footer links (admin only)
+app.post('/api/admin/settings/links', adminAuth, async (req, res) => {
+    const { links } = req.body;
+    if (!Array.isArray(links)) return res.status(400).json({ error: 'Invalid links' });
+    if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+    await supabase.from('settings').upsert({ key: 'footer_links', value: JSON.stringify(links), updated_at: new Date().toISOString() });
+    res.json({ success: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

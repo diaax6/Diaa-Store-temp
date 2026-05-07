@@ -42,6 +42,7 @@ function showDashboard() {
     $('dashboard').style.display = '';
     loadDomains();
     loadAliases();
+    loadLinks();
 }
 
 function logout() {
@@ -174,6 +175,80 @@ async function copyText(text) {
         await navigator.clipboard.writeText(text);
         toast(`Copied: ${text}`, 'ok');
     } catch { toast('Copy failed', 'err'); }
+}
+
+// ─── Password Change ────────────────────────────────────────────────────────
+async function changePassword() {
+    const np = $('newPass').value, cp = $('confirmPass').value;
+    if (!np || np.length < 6) { toast('Password must be 6+ characters', 'err'); return; }
+    if (np !== cp) { toast('Passwords do not match', 'err'); return; }
+    try {
+        const r = await fetch('/api/admin/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ newPassword: np })
+        });
+        if (r.ok) {
+            toast('Password changed! Please re-login.', 'ok');
+            $('newPass').value = ''; $('confirmPass').value = '';
+            setTimeout(logout, 1500);
+        } else { const d = await r.json(); toast(d.error || 'Failed', 'err'); }
+    } catch { toast('Failed to change password', 'err'); }
+}
+
+// ─── Footer Links Editor ────────────────────────────────────────────────────
+let footerLinks = [];
+
+async function loadLinks() {
+    try {
+        const r = await fetch('/api/settings/links');
+        const d = await r.json();
+        footerLinks = d.links || [];
+        if (footerLinks.length === 0) {
+            footerLinks = [
+                { icon: '🔐', name: '2FA Generator', url: 'https://2fa.diaastore.cloud' },
+                { icon: '📬', name: 'Diaa Store Mails', url: 'https://mail.diaa.store' }
+            ];
+        }
+        renderLinks();
+    } catch {}
+}
+
+function renderLinks() {
+    const el = $('linksEditor');
+    let h = '';
+    footerLinks.forEach((l, i) => {
+        h += `<div class="link-row" style="animation:fadeUp .2s ease ${i*.03}s both">
+            <input type="text" class="email-in link-in" value="${esc(l.icon)}" placeholder="Icon" style="width:50px;text-align:center;padding:8px" onchange="footerLinks[${i}].icon=this.value">
+            <input type="text" class="email-in link-in" value="${esc(l.name)}" placeholder="Name" style="flex:1;padding:8px 12px" onchange="footerLinks[${i}].name=this.value">
+            <input type="text" class="email-in link-in" value="${esc(l.url)}" placeholder="https://..." style="flex:2;padding:8px 12px" onchange="footerLinks[${i}].url=this.value">
+            <button class="abtn abtn-del" onclick="removeLink(${i})" title="Remove">🗑️</button>
+        </div>`;
+    });
+    el.innerHTML = h;
+}
+
+function addLink() {
+    footerLinks.push({ icon: '🌐', name: '', url: '' });
+    renderLinks();
+}
+
+function removeLink(i) {
+    footerLinks.splice(i, 1);
+    renderLinks();
+}
+
+async function saveLinks() {
+    const valid = footerLinks.filter(l => l.name && l.url);
+    try {
+        const r = await fetch('/api/admin/settings/links', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ links: valid })
+        });
+        if (r.ok) { toast('Links saved!', 'ok'); footerLinks = valid; renderLinks(); }
+        else toast('Save failed', 'err');
+    } catch { toast('Save failed', 'err'); }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

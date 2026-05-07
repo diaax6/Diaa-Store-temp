@@ -10,6 +10,7 @@ const timerEl = $('timer'), copyBtn = $('copyBtn');
 
 document.addEventListener('DOMContentLoaded', () => {
     emailInput.addEventListener('keydown', e => { if(e.key==='Enter') handleCheck(); });
+    loadFooterLinks();
 
     // Detect alias from URL path or hash
     let detected = '';
@@ -174,3 +175,25 @@ function fmtDate(d) { const dt = new Date(d), now = new Date(), df = now - dt;
     if (df < 6e4) return 'Now'; if (df < 36e5) return `${Math.floor(df / 6e4)}m`; if (df < 864e5) return `${Math.floor(df / 36e5)}h`;
     if (df < 6048e5) return `${Math.floor(df / 864e5)}d`; return dt.toLocaleDateString('en', { month: 'short', day: 'numeric' }); }
 function fmtFull(d) { return new Date(d).toLocaleDateString('en', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
+async function loadFooterLinks() {
+    const el = $('footerLinks');
+    if (!el) return;
+    let links = [
+        { icon: '🔐', name: '2FA Generator', url: 'https://2fa.diaastore.cloud' },
+        { icon: '📬', name: 'Diaa Store Mails', url: 'https://mail.diaa.store' }
+    ];
+    try {
+        const r = await fetch('/api/settings/links');
+        const d = await r.json();
+        if (d.links && d.links.length > 0) links = d.links;
+    } catch {}
+    el.innerHTML = links.map(l => {
+        const domain = l.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        return `<a href="${esc(l.url)}" target="_blank" class="service-card">
+            <span class="svc-icon">${l.icon}</span>
+            <div class="svc-info"><span class="svc-name">${esc(l.name)}</span><span class="svc-url">${esc(domain)}</span></div>
+            <svg class="svc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+        </a>`;
+    }).join('');
+}
