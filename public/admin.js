@@ -77,8 +77,20 @@ async function addDomain() {
     try {
         const r = await fetch('/api/admin/domains', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ domain: dom }) });
         if (r.status === 409) { toast('Domain already exists', 'err'); return; }
-        if (r.ok) { toast(`Added: ${dom}`, 'ok'); $('newDomain').value = ''; loadDomains(); loadDomainManager(); showDns(dom); }
-        else toast('Failed to add domain', 'err');
+        if (r.ok) {
+            const d = await r.json();
+            const mc = d.mailcow || {};
+            if (mc.domain === 'ok') {
+                toast(`✅ ${dom} added + MailCow configured automatically!`, 'ok');
+            } else if (mc.domain === 'skipped') {
+                toast(`Added ${dom} (MailCow API key not set — manual setup needed)`, 'inf');
+            } else {
+                toast(`Added ${dom} (MailCow auto-setup partially failed)`, 'inf');
+            }
+            $('newDomain').value = '';
+            loadDomains(); loadDomainManager();
+            showDns(dom, mc);
+        } else toast('Failed to add domain', 'err');
     } catch { toast('Failed', 'err'); }
 }
 
@@ -90,15 +102,26 @@ async function removeDomain(dom) {
     } catch { toast('Failed', 'err'); }
 }
 
-function showDns(domain) {
+function showDns(domain, mc) {
+    mc = mc || {};
     const ip = serverIP || '79.137.74.166';
     const hostname = 'mail.diaa.store';
+    const s = v => v === 'ok' ? '<span style="color:#22c55e;font-weight:700">✅ Done</span>' : v === 'skipped' ? '<span style="color:#f59e0b">⏭ Skipped (no API key)</span>' : '<span style="color:#ef4444">❌ Manual setup needed</span>';
+    const mcSection = mc.domain ? `
+        <div class="dns-section" style="background:rgba(255,255,255,.03);border-radius:12px;padding:16px;border:1px solid var(--border)">
+            <h4>⚡ Auto-Setup Results</h4>
+            <div style="display:grid;gap:8px;margin-top:10px;font-size:12px">
+                <div style="display:flex;justify-content:space-between">Domain in MailCow ${s(mc.domain)}</div>
+                <div style="display:flex;justify-content:space-between">Mailbox inbox@${domain} ${s(mc.mailbox)}</div>
+                <div style="display:flex;justify-content:space-between">Catch-all alias ${s(mc.alias)}</div>
+            </div>
+        </div>` : '';
     $('dnsContent').innerHTML = `
         <div class="dns-section">
             <h3>📧 Domain: <span style="color:#a78bfa">${domain}</span></h3>
             <p class="dns-desc">Follow these steps to set up email for this domain:</p>
         </div>
-
+        ${mcSection}
         <div class="dns-section">
             <h4>1️⃣ DNS Records <span class="dns-hint">(at your domain registrar)</span></h4>
             <table class="dns-table">
@@ -112,7 +135,7 @@ function showDns(domain) {
         </div>
 
         <div class="dns-section">
-            <h4>2️⃣ MailCow Setup</h4>
+            <h4>2️⃣ MailCow Setup ${mc.domain === 'ok' ? '<span style="color:#22c55e;font-size:11px"> — Auto-configured ✅</span>' : ''}</h4>
             <ol class="dns-steps">
                 <li>Open <b>${hostname}</b> admin panel</li>
                 <li><b>Configuration → Mail Setup → Domains</b> → Add <code>${domain}</code></li>

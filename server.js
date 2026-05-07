@@ -16,6 +16,8 @@ const IMAP_HOST = process.env.IMAP_HOST || '127.0.0.1';
 const IMAP_PORT = parseInt(process.env.IMAP_PORT) || 993;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'tempmail-secret-key-2026';
+const MAILCOW_URL = process.env.MAILCOW_URL || 'https://mail.diaa.store';
+const MAILCOW_API_KEY = process.env.MAILCOW_API_KEY || '';
 
 // ─── Supabase ───────────────────────────────────────────────────────────────
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
@@ -89,7 +91,6 @@ function rateLimit(req, res, next) {
 
 app.post('/api/admin/login', async (req, res) => {
     let password = ADMIN_PASSWORD;
-    // Check if password was overridden in Supabase
     if (supabase) {
         const { data } = await supabase.from('settings').select('value').eq('key', 'admin_password').single();
         if (data) password = JSON.parse(data.value);
@@ -97,14 +98,14 @@ app.post('/api/admin/login', async (req, res) => {
     if (req.body.password !== password) return res.status(401).json({ error: 'Invalid password' });
     res.json({ token: generateToken() });
 });
+
 // Helper: get all domains (env + Supabase)
 async function getAllDomains() {
     const envDomains = domains.map(d => d.domain);
     if (!supabase) return envDomains;
     const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
     const custom = data ? JSON.parse(data.value) : [];
-    const all = [...new Set([...envDomains, ...custom])];
-    return all;
+    return [...new Set([...envDomains, ...custom])];
 }
 
 app.get('/api/domains', async (req, res) => {
@@ -122,17 +123,31 @@ app.get('/api/admin/domains', adminAuth, async (req, res) => {
 });
 
 app.post('/api/admin/domains', adminAuth, async (req, res) => {
-    const { domain } = req.body;
-    if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return res.status(400).json({ error: 'Invalid domain' });
+    const dom = (req.body.domain || '').toLowerCase().trim();
+    const domRegex = /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/;
+    if (!dom || !domRegex.test(dom)) return res.status(400).json({ error: 'Invalid domain' });
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
     const { data } = await supabase.from('settings').select('value').eq('key', 'custom_domains').single();
     const list = data ? JSON.parse(data.value) : [];
-    if (list.includes(domain.toLowerCase()) || domains.find(d => d.domain === domain.toLowerCase())) {
-        return res.status(409).json({ error: 'Domain already exists' });
+    if (list.includes(dom) || domains.find(d => d.domain === dom)) return res.status(409).json({ error: 'Domain already exists' });
+
+    // MailCow API automation
+    const mc = { domain: 'skipped', mailbox: 'skipped', alias: 'skipped' };
+    const mcPass = req.body.mailboxPass || 'TempMail2026!';
+    if (MAILCOW_API_KEY) {
+        const mch = { 'Content-Type': 'application/json', 'X-API-Key': MAILCOW_API_KEY };
+        try {
+            const r1 = await fetch(`${MAILCOW_URL}/api/v1/add/domain`, { method: 'POST', headers: mch, body: JSON.stringify({ domain: dom, description: 'TempMail ' + dom, aliases: 400, mailboxes: 10, defquota: 1024, maxquota: 2048, active: 1 }) });
+            mc.domain = r1.ok ? 'ok' : 'failed';
+            const r2 = await fetch(`${MAILCOW_URL}/api/v1/add/mailbox`, { method: 'POST', headers: mch, body: JSON.stringify({ local_part: 'inbox', domain: dom, name: 'Inbox', password: mcPass, password2: mcPass, quota: 1024, active: 1 }) });
+            mc.mailbox = r2.ok ? 'ok' : 'failed';
+            const r3 = await fetch(`${MAILCOW_URL}/api/v1/add/alias`, { method: 'POST', headers: mch, body: JSON.stringify({ address: '@' + dom, goto: 'inbox@' + dom, active: 1 }) });
+            mc.alias = r3.ok ? 'ok' : 'failed';
+        } catch (e) { mc.error = e.message; }
     }
-    list.push(domain.toLowerCase());
+    list.push(dom);
     await supabase.from('settings').upsert({ key: 'custom_domains', value: JSON.stringify(list), updated_at: new Date().toISOString() });
-    res.json({ success: true, domains: list });
+    res.json({ success: true, mailcow: mc });
 });
 
 app.delete('/api/admin/domains/:domain', adminAuth, async (req, res) => {
@@ -151,7 +166,6 @@ app.get('/api/admin/aliases', adminAuth, async (req, res) => {
         .order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
 
-    // Get email counts
     for (const alias of data) {
         const { count } = await supabase
             .from('emails')
@@ -169,16 +183,14 @@ app.post('/api/admin/generate', adminAuth, async (req, res) => {
 
     let localPart;
     if (req.body.customName) {
-        // Custom name: sanitize
         localPart = req.body.customName.toLowerCase().replace(/[^a-z0-9._-]/g, '').trim();
-        if (!localPart || localPart.length < 2) return res.status(400).json({ error: 'Custom name must be at least 2 characters (a-z, 0-9, . _ -)' });
+        if (localPart.length < 2) return res.status(400).json({ error: 'Custom name too short (min 2 chars)' });
         if (localPart.length > 64) return res.status(400).json({ error: 'Custom name too long (max 64 chars)' });
     } else {
-        // Random
         const words = ['alpha','beta','gamma','delta','echo','foxtrot','nova','pixel','cyber','neon','flux','orbit','prism','vortex','zenith','blaze','storm','pulse','spark','drift','shade','frost','ember','surge','wave','bolt','flash','glint','crypt','phantom','nebula','quasar','titan','comet','lunar','solar','vapor','astro','turbo','rapid'];
         localPart = words[Math.floor(Math.random() * words.length)] + crypto.randomInt(1000, 9999);
     }
-    const email = `${localPart}@${domain}`;
+    const email = localPart + '@' + domain;
 
     const { data, error } = await supabase
         .from('aliases')
@@ -210,7 +222,6 @@ app.patch('/api/admin/aliases/:id', adminAuth, async (req, res) => {
 
 // ─── Settings Endpoints ─────────────────────────────────────────────────────
 
-// Change admin password (stores in Supabase)
 app.post('/api/admin/password', adminAuth, async (req, res) => {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -219,14 +230,12 @@ app.post('/api/admin/password', adminAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-// Get footer links
 app.get('/api/settings/links', async (req, res) => {
     if (!supabase) return res.json({ links: [] });
     const { data } = await supabase.from('settings').select('value').eq('key', 'footer_links').single();
     res.json({ links: data ? JSON.parse(data.value) : [] });
 });
 
-// Update footer links (admin only)
 app.post('/api/admin/settings/links', adminAuth, async (req, res) => {
     const { links } = req.body;
     if (!Array.isArray(links)) return res.status(400).json({ error: 'Invalid links' });
@@ -242,7 +251,6 @@ app.post('/api/admin/settings/links', adminAuth, async (req, res) => {
 app.get('/api/emails/:alias', rateLimit, async (req, res) => {
     const alias = req.params.alias.toLowerCase().trim();
 
-    // 1. Validate alias in Supabase
     const { data: aliasRow } = await supabase
         .from('aliases')
         .select('id, email, is_active')
@@ -252,7 +260,6 @@ app.get('/api/emails/:alias', rateLimit, async (req, res) => {
     if (!aliasRow) return res.status(404).json({ error: 'This email is not registered. Contact admin.' });
     if (!aliasRow.is_active) return res.status(403).json({ error: 'This email has been deactivated.' });
 
-    // 2. Check cache freshness (2 min)
     const { data: cached } = await supabase
         .from('emails')
         .select('*')
@@ -266,7 +273,6 @@ app.get('/api/emails/:alias', rateLimit, async (req, res) => {
         return res.json({ alias, count: cached.length, emails: cached.map(formatCached), cached: true });
     }
 
-    // 3. Fetch from IMAP
     const domainEntry = findDomainEntry(alias);
     if (!domainEntry) {
         return res.json({ alias, count: cached?.length || 0, emails: (cached || []).map(formatCached) });
@@ -303,7 +309,6 @@ app.get('/api/emails/:alias', rateLimit, async (req, res) => {
                 }
             }
 
-            // 4. Cache in Supabase
             await supabase.from('emails').delete().eq('alias_id', aliasRow.id);
             if (emails.length > 0) {
                 await supabase.from('emails').insert(emails.map(e => ({
@@ -365,7 +370,6 @@ async function cleanupOldEmails() {
         } catch (err) { console.error(`Cleanup [${entry.domain}]:`, err.message); }
         finally { if (client) try { await client.logout(); } catch {} }
     }
-    // Clean old cached emails from Supabase
     const cutoff = new Date(Date.now() - 48 * 3600000).toISOString();
     await supabase.from('emails').delete().lt('date', cutoff);
 }
